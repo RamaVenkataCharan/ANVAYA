@@ -1,0 +1,31 @@
+{
+  "name": "anvaya-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ANVAYA - Paperless Healthcare Ecosystem connecting Doctors, Medical Shops, and Patients",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "npm --workspace=apps/server run dev",
+    "dev:mobile": "npm --workspace=apps/mobile run start",
+    "build:shared": "npm --workspace=packages/shared run build",
+    "build:server": "npm --workspace=apps/server run build",
+    "build": "npm run build:shared && npm run build:server",
+    "db:generate": "npm --workspace=apps/server run db:generate",
+    "db:migrate": "npm --workspace=apps/server run db:migrate",
+    "db:push": "npm --workspace=apps/server run db:push",
+    "db:seed": "npm --workspace=apps/server run db:seed",
+    "db:studio": "npm --workspace=apps/server run db:studio"
+  },
+  "keywords": [
+    "healthcare",
+    "paperless",
+    "e-prescription",
+    "telehealth",
+    "pharmacy-billing"
+  ],
+  "author": "ANVAYA Team",
+  "license": "ISC"
+}
