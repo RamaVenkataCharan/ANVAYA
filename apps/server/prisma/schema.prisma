@@ -1,0 +1,337 @@
+// Prisma schema for ANVAYA
+// Paperless Healthcare Ecosystem
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DOCTOR
+  SHOP
+  PATIENT
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PrescriptionStatus {
+  ISSUED
+  DISPENSED
+  CANCELLED
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+  PARTIAL
+}
+
+enum LedgerType {
+  CREDIT
+  PAYMENT
+}
+
+enum ReportType {
+  LAB_REPORT
+  IMAGING
+  PRESCRIPTION
+  DISCHARGE_SUMMARY
+  BILL
+  OTHER
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  phone        String        @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  doctorProfile Doctor?
+  shopProfile   Shop?
+  patientProfile Patient?
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+}
+
+model Doctor {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization     String
+  registrationNo     String             @unique
+  clinicAddress      String
+  verificationStatus VerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  rejectionReason    String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  appointments  Appointment[]
+  prescriptions Prescription[]
+  consents      Consent[]
+
+  @@index([verificationStatus])
+  @@index([registrationNo])
+}
+
+model Shop {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopName           String
+  licenseNo          String             @unique
+  address            String
+  phone              String
+  timings            String
+  verificationStatus VerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  rejectionReason    String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  dispensedPrescriptions Prescription[]
+  bills                  Bill[]
+  ledgerEntries          LedgerEntry[]
+
+  @@index([verificationStatus])
+  @@index([licenseNo])
+}
+
+model Patient {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dob              DateTime
+  gender           String
+  address          String
+  bloodGroup       String?
+  emergencyContact String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  appointments    Appointment[]
+  prescriptions   Prescription[]
+  bills           Bill[]
+  reports         Report[]
+  ledgerEntries   LedgerEntry[]
+  refillReminders RefillReminder[]
+  consents        Consent[]
+}
+
+model Appointment {
+  id        String            @id @default(uuid())
+  doctorId  String
+  doctor    Doctor            @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patientId String
+  patient   Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  dateTime  DateTime
+  status    AppointmentStatus @default(SCHEDULED)
+  reason    String
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([doctorId, dateTime])
+  @@index([patientId, dateTime])
+  @@index([status])
+}
+
+model Prescription {
+  id          String             @id @default(uuid())
+  doctorId    String
+  doctor      Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patientId   String
+  patient     Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  shopId      String?
+  shop        Shop?              @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  code        String             @unique // human-readable e.g. ANV-8942-7193
+  qrToken     String             @unique // secure cryptographic token for QR code
+  status      PrescriptionStatus @default(ISSUED)
+  diagnosis   String
+  notes       String?
+  issuedAt    DateTime           @default(now())
+  dispensedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  items           PrescriptionItem[]
+  bills           Bill[]
+  refillReminders RefillReminder[]
+
+  @@index([code])
+  @@index([qrToken])
+  @@index([patientId, status])
+  @@index([doctorId, status])
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicine       String
+  dosage         String       // e.g. 500mg
+  frequency      String       // e.g. 1-0-1 after food
+  duration       String       // e.g. 5 days
+  quantity       Int          // e.g. 10
+  instructions   String?
+
+  @@index([prescriptionId])
+}
+
+model Bill {
+  id             String        @id @default(uuid())
+  billNumber     String        @unique // e.g. INV-2026-0001
+  shopId         String
+  shop           Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  prescriptionId String?
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+  subtotal       Decimal       @db.Decimal(10, 2)
+  tax            Decimal       @default(0) @db.Decimal(10, 2)
+  total          Decimal       @db.Decimal(10, 2)
+  paymentStatus  PaymentStatus @default(PAID)
+  paymentMethod  String        @default("UPI") // CASH, UPI, CARD, KHATA_CREDIT
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  items         BillItem[]
+  ledgerEntries LedgerEntry[]
+
+  @@index([shopId, createdAt])
+  @@index([patientId, createdAt])
+  @@index([billNumber])
+}
+
+model BillItem {
+  id         String  @id @default(uuid())
+  billId     String
+  bill       Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  medicine   String
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(10, 2)
+  totalPrice Decimal @db.Decimal(10, 2)
+
+  @@index([billId])
+}
+
+model Report {
+  id         String     @id @default(uuid())
+  patientId  String
+  patient    Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title      String
+  fileUrl    String
+  type       ReportType @default(OTHER)
+  notes      String?
+  uploadedAt DateTime   @default(now())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([patientId, uploadedAt])
+  @@index([type])
+}
+
+model LedgerEntry {
+  id          String     @id @default(uuid())
+  shopId      String
+  shop        Shop       @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  patientId   String
+  patient     Patient    @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  billId      String?
+  bill        Bill?      @relation(fields: [billId], references: [id], onDelete: SetNull)
+  amount      Decimal    @db.Decimal(10, 2)
+  type        LedgerType // CREDIT (due from patient) | PAYMENT (paid by patient)
+  description String
+  createdAt   DateTime   @default(now())
+
+  @@index([shopId, patientId])
+  @@index([createdAt])
+}
+
+model RefillReminder {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  remindAt       DateTime
+  sent           Boolean      @default(false)
+  sentAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([remindAt, sent])
+  @@index([patientId])
+}
+
+model Consent {
+  id        String    @id @default(uuid())
+  patientId String
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId  String
+  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  isActive  Boolean   @default(true)
+  grantedAt DateTime  @default(now())
+  revokedAt DateTime?
+  notes     String?
+
+  @@unique([patientId, doctorId])
+  @@index([patientId, isActive])
+  @@index([doctorId, isActive])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String   // e.g. AUTH_LOGIN, PRESCRIPTION_ISSUED, PRESCRIPTION_DISPENSED, MEDICAL_RECORD_VIEWED
+  resource   String   // e.g. PRESCRIPTION, REPORT, USER, BILL
+  resourceId String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([resource, resourceId])
+  @@index([action])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, revoked])
+  @@index([tokenHash])
+}
