@@ -8,6 +8,7 @@ import { connectDatabase, disconnectDatabase } from './config/prisma';
 import { apiRouter } from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { NotFoundError } from './utils/errors';
+import { initRefillReminderCron } from './jobs/refillReminders';
 
 const app = express();
 
@@ -94,6 +95,7 @@ const server = app.listen(config.port, async () => {
 =============================================================
   `);
   await connectDatabase();
+  initRefillReminderCron();
 });
 
 // Graceful Shutdown
