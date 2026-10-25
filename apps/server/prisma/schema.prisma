@@ -65,6 +65,7 @@ model User {
   passwordHash String
   role         Role
   isActive     Boolean       @default(true)
+  pushToken    String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -209,8 +210,8 @@ model Bill {
   billNumber     String        @unique // e.g. INV-2026-0001
   shopId         String
   shop           Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  patientId      String
-  patient        Patient       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  patientId      String?
+  patient        Patient?      @relation(fields: [patientId], references: [id], onDelete: SetNull)
   prescriptionId String?
   prescription   Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
   subtotal       Decimal       @db.Decimal(10, 2)
