@@ -26,4 +26,8 @@ router.get('/stats', (req, res, next) =>
   adminController.getStats(req, res, next)
 );
 
+router.get('/audit-logs', (req, res, next) =>
+  adminController.getAuditLogs(req, res, next)
+);
+
 export const adminRoutes = router;
