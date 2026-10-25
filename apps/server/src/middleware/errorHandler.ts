@@ -11,11 +11,15 @@ export function errorHandler(
   _next: NextFunction
 ): void {
   // 1. Zod Validation Errors
-  if (err instanceof ZodError) {
-    const formattedErrors = err.errors.map((e) => ({
+  // Duck-type check (not instanceof) because a monorepo can have multiple
+  // Zod versions; instanceof fails when the throwing module and the error
+  // handler import different Zod instances from separate node_modules trees.
+  if (err instanceof ZodError || ('issues' in err && Array.isArray((err as any).issues))) {
+    const zodErr = err as ZodError;
+    const formattedErrors = zodErr.errors?.map((e) => ({
       path: e.path.join('.'),
       message: e.message,
-    }));
+    })) ?? [{ path: '', message: err.message }];
 
     res.status(400).json({
       success: false,
