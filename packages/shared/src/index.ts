@@ -3,4 +3,7 @@ export * from './schemas/auth.schema';
 export * from './schemas/prescription.schema';
 export * from './schemas/appointment.schema';
 export * from './schemas/billing.schema';
+export * from './schemas/report.schema';
+export * from './schemas/consent.schema';
+export * from './schemas/refill.schema';
 export * from './types';
