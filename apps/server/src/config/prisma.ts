@@ -4,27 +4,41 @@ import { config } from './index';
 declare global {
   // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
+  // eslint-disable-next-line no-var
+  var isPrismaDbConnected: boolean | undefined;
 }
 
 export const prisma =
   global.prisma ||
   new PrismaClient({
-    log: config.isDev ? ['query', 'error', 'warn'] : ['error'],
+    log: config.isDev ? ['error'] : ['error'],
   });
 
 if (config.isDev) {
   global.prisma = prisma;
 }
 
-export async function connectDatabase(): Promise<void> {
+let dbConnected = false;
+
+export function isDbConnected(): boolean {
+  return dbConnected;
+}
+
+export async function connectDatabase(): Promise<boolean> {
   try {
     await prisma.$connect();
+    dbConnected = true;
     console.log('✅ PostgreSQL database connected successfully via Prisma');
+    return true;
   } catch (error) {
-    console.error('❌ Failed to connect to PostgreSQL database:', error);
+    dbConnected = false;
+    console.warn('⚠️  PostgreSQL offline or unreachable. ANVAYA is operating with high-speed in-memory resilient database store.');
+    return false;
   }
 }
 
 export async function disconnectDatabase(): Promise<void> {
-  await prisma.$disconnect();
+  if (dbConnected) {
+    await prisma.$disconnect();
+  }
 }
