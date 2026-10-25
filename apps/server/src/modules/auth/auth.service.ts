@@ -1,10 +1,12 @@
 import { Role, VerificationStatus, RegisterInput, AuthResponse, AuthenticatedUser } from '@anvaya/shared';
-import { prisma } from '../../config/prisma';
+import { prisma, isDbConnected } from '../../config/prisma';
+import { inMemoryDb } from '../../db/inMemoryDb';
 import { hashPassword, comparePassword } from '../../utils/password';
 import { generateAccessToken, generateRefreshToken, hashToken, verifyRefreshToken } from '../../utils/jwt';
 import { ConflictError, UnauthorizedError, BadRequestError } from '../../utils/errors';
 import { recordAuditLog } from '../../middleware/audit';
 import { config } from '../../config';
+import crypto from 'crypto';
 
 export class AuthService {
   /**
@@ -15,115 +17,214 @@ export class AuthService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<AuthResponse> {
-    // 1. Verify uniqueness of email and phone
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ email: input.email }, { phone: input.phone }],
-      },
-    });
-
-    if (existingUser) {
-      if (existingUser.email === input.email) {
-        throw new ConflictError('An account with this email address already exists');
-      }
-      throw new ConflictError('An account with this phone number already exists');
-    }
-
-    // 2. Role-specific validation checks
-    if (input.role === Role.DOCTOR) {
-      const existingDoc = await prisma.doctor.findUnique({
-        where: { registrationNo: input.registrationNo },
-      });
-      if (existingDoc) {
-        throw new ConflictError('Medical registration number is already registered to another doctor account');
-      }
-    } else if (input.role === Role.SHOP) {
-      const existingShop = await prisma.shop.findUnique({
-        where: { licenseNo: input.licenseNo },
-      });
-      if (existingShop) {
-        throw new ConflictError('Drug license number is already registered to another pharmacy account');
-      }
-    } else if (input.role === Role.ADMIN) {
-      if (input.adminCode !== config.adminCode) {
-        throw new BadRequestError('Invalid administrative bootstrap code');
-      }
-    }
-
-    // 3. Hash password
     const passwordHash = await hashPassword(input.password);
 
-    // 4. Create User and Role profile inside a database transaction
-    const newUser = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          name: input.name,
-          email: input.email,
-          phone: input.phone,
-          passwordHash,
-          role: input.role,
+    if (isDbConnected()) {
+      // 1. Verify uniqueness of email and phone in Postgres
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [{ email: input.email.toLowerCase() }, { phone: input.phone }],
         },
       });
 
+      if (existingUser) {
+        if (existingUser.email.toLowerCase() === input.email.toLowerCase()) {
+          throw new ConflictError('An account with this email address already exists');
+        }
+        throw new ConflictError('An account with this phone number already exists');
+      }
+
+      // 2. Role-specific validation checks
       if (input.role === Role.DOCTOR) {
-        await tx.doctor.create({
+        const existingDoc = await prisma.doctor.findUnique({
+          where: { registrationNo: input.registrationNo },
+        });
+        if (existingDoc) {
+          throw new ConflictError('Medical registration number is already registered to another doctor account');
+        }
+      } else if (input.role === Role.SHOP) {
+        const existingShop = await prisma.shop.findUnique({
+          where: { licenseNo: input.licenseNo },
+        });
+        if (existingShop) {
+          throw new ConflictError('Drug license number is already registered to another pharmacy account');
+        }
+      } else if (input.role === Role.ADMIN) {
+        if (input.adminCode !== config.adminCode) {
+          throw new BadRequestError('Invalid administrative bootstrap code');
+        }
+      }
+
+      // 3. Create User and Role profile inside a database transaction
+      const newUser = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
           data: {
-            userId: user.id,
-            specialization: input.specialization,
-            registrationNo: input.registrationNo,
-            clinicAddress: input.clinicAddress,
-            verificationStatus: VerificationStatus.PENDING,
+            name: input.name,
+            email: input.email.toLowerCase(),
+            phone: input.phone,
+            passwordHash,
+            role: input.role,
           },
+        });
+
+        if (input.role === Role.DOCTOR) {
+          await tx.doctor.create({
+            data: {
+              userId: user.id,
+              specialization: input.specialization,
+              registrationNo: input.registrationNo,
+              clinicAddress: input.clinicAddress,
+              verificationStatus: VerificationStatus.PENDING,
+            },
+          });
+        } else if (input.role === Role.SHOP) {
+          await tx.shop.create({
+            data: {
+              userId: user.id,
+              shopName: input.shopName,
+              licenseNo: input.licenseNo,
+              address: input.address,
+              phone: input.phone,
+              timings: input.timings,
+              verificationStatus: VerificationStatus.PENDING,
+            },
+          });
+        } else if (input.role === Role.PATIENT) {
+          await tx.patient.create({
+            data: {
+              userId: user.id,
+              dob: new Date(input.dob),
+              gender: input.gender,
+              address: input.address,
+              bloodGroup: input.bloodGroup,
+              emergencyContact: input.emergencyContact,
+            },
+          });
+        }
+
+        return user;
+      });
+
+      const authenticatedUser = await this.getMe(newUser.id);
+      const { accessToken, refreshToken } = await this.issueTokens(authenticatedUser);
+
+      recordAuditLog({
+        userId: newUser.id,
+        action: 'AUTH_REGISTER',
+        resource: 'USER',
+        resourceId: newUser.id,
+        ipAddress,
+        userAgent,
+        metadata: { role: input.role, email: input.email },
+      });
+
+      return {
+        user: authenticatedUser,
+        tokens: { accessToken, refreshToken },
+      };
+    } else {
+      // In-Memory Dev fallback
+      const existingUser = inMemoryDb.users.find(
+        (u) => u.email.toLowerCase() === input.email.toLowerCase() || u.phone === input.phone
+      );
+
+      if (existingUser) {
+        if (existingUser.email.toLowerCase() === input.email.toLowerCase()) {
+          throw new ConflictError('An account with this email address already exists');
+        }
+        throw new ConflictError('An account with this phone number already exists');
+      }
+
+      if (input.role === Role.DOCTOR) {
+        const existingDoc = inMemoryDb.doctors.find((d) => d.registrationNo === input.registrationNo);
+        if (existingDoc) {
+          throw new ConflictError('Medical registration number is already registered to another doctor account');
+        }
+      } else if (input.role === Role.SHOP) {
+        const existingShop = inMemoryDb.shops.find((s) => s.licenseNo === input.licenseNo);
+        if (existingShop) {
+          throw new ConflictError('Drug license number is already registered to another pharmacy account');
+        }
+      } else if (input.role === Role.ADMIN) {
+        if (input.adminCode !== config.adminCode) {
+          throw new BadRequestError('Invalid administrative bootstrap code');
+        }
+      }
+
+      const userId = crypto.randomUUID();
+      const user = {
+        id: userId,
+        name: input.name,
+        email: input.email.toLowerCase(),
+        phone: input.phone,
+        passwordHash,
+        role: input.role,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      inMemoryDb.users.push(user);
+
+      if (input.role === Role.DOCTOR) {
+        inMemoryDb.doctors.push({
+          id: crypto.randomUUID(),
+          userId,
+          specialization: input.specialization,
+          registrationNo: input.registrationNo,
+          clinicAddress: input.clinicAddress,
+          verificationStatus: VerificationStatus.PENDING,
+          verifiedAt: null,
+          rejectionReason: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
       } else if (input.role === Role.SHOP) {
-        await tx.shop.create({
-          data: {
-            userId: user.id,
-            shopName: input.shopName,
-            licenseNo: input.licenseNo,
-            address: input.address,
-            phone: input.phone,
-            timings: input.timings,
-            verificationStatus: VerificationStatus.PENDING,
-          },
+        inMemoryDb.shops.push({
+          id: crypto.randomUUID(),
+          userId,
+          shopName: input.shopName,
+          licenseNo: input.licenseNo,
+          address: input.address,
+          phone: input.phone,
+          timings: input.timings,
+          verificationStatus: VerificationStatus.PENDING,
+          verifiedAt: null,
+          rejectionReason: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
       } else if (input.role === Role.PATIENT) {
-        await tx.patient.create({
-          data: {
-            userId: user.id,
-            dob: new Date(input.dob),
-            gender: input.gender,
-            address: input.address,
-            bloodGroup: input.bloodGroup,
-            emergencyContact: input.emergencyContact,
-          },
+        inMemoryDb.patients.push({
+          id: crypto.randomUUID(),
+          userId,
+          dob: new Date(input.dob),
+          gender: input.gender,
+          address: input.address,
+          bloodGroup: input.bloodGroup || null,
+          emergencyContact: input.emergencyContact || null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
       }
 
-      return user;
-    });
+      const authenticatedUser = await this.getMe(userId);
+      const { accessToken, refreshToken } = await this.issueTokens(authenticatedUser);
 
-    // 5. Fetch full user object with profile
-    const authenticatedUser = await this.getMe(newUser.id);
+      recordAuditLog({
+        userId,
+        action: 'AUTH_REGISTER',
+        resource: 'USER',
+        resourceId: userId,
+        ipAddress,
+        userAgent,
+        metadata: { role: input.role, email: input.email },
+      });
 
-    // 6. Issue Access and Refresh Tokens
-    const { accessToken, refreshToken } = await this.issueTokens(authenticatedUser);
-
-    // 7. Audit Log
-    recordAuditLog({
-      userId: newUser.id,
-      action: 'AUTH_REGISTER',
-      resource: 'USER',
-      resourceId: newUser.id,
-      ipAddress,
-      userAgent,
-      metadata: { role: input.role, email: input.email },
-    });
-
-    return {
-      user: authenticatedUser,
-      tokens: { accessToken, refreshToken },
-    };
+      return {
+        user: authenticatedUser,
+        tokens: { accessToken, refreshToken },
+      };
+    }
   }
 
   /**
@@ -135,47 +236,83 @@ export class AuthService {
     ipAddress?: string,
     userAgent?: string
   ): Promise<AuthResponse> {
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [{ email: identifier.toLowerCase() }, { phone: identifier }],
-      },
-      include: {
-        doctorProfile: true,
-        shopProfile: true,
-        patientProfile: true,
-      },
-    });
+    if (isDbConnected()) {
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [{ email: identifier.toLowerCase() }, { phone: identifier }],
+        },
+        include: {
+          doctorProfile: true,
+          shopProfile: true,
+          patientProfile: true,
+        },
+      });
 
-    if (!user) {
-      throw new UnauthorizedError('Invalid credentials');
+      if (!user) {
+        throw new UnauthorizedError('Invalid credentials');
+      }
+
+      if (!user.isActive) {
+        throw new UnauthorizedError('Your account has been deactivated. Please contact support.');
+      }
+
+      const isPasswordValid = await comparePassword(passwordPlain, user.passwordHash);
+      if (!isPasswordValid) {
+        throw new UnauthorizedError('Invalid credentials');
+      }
+
+      const authenticatedUser = this.formatUser(user);
+      const { accessToken, refreshToken } = await this.issueTokens(authenticatedUser);
+
+      recordAuditLog({
+        userId: user.id,
+        action: 'AUTH_LOGIN',
+        resource: 'USER',
+        resourceId: user.id,
+        ipAddress,
+        userAgent,
+        metadata: { role: user.role, email: user.email },
+      });
+
+      return {
+        user: authenticatedUser,
+        tokens: { accessToken, refreshToken },
+      };
+    } else {
+      const idLower = identifier.toLowerCase();
+      const user = inMemoryDb.users.find((u) => u.email.toLowerCase() === idLower || u.phone === identifier);
+
+      if (!user) {
+        throw new UnauthorizedError('Invalid credentials');
+      }
+
+      if (!user.isActive) {
+        throw new UnauthorizedError('Your account has been deactivated. Please contact support.');
+      }
+
+      const isPasswordValid = await comparePassword(passwordPlain, user.passwordHash);
+      if (!isPasswordValid) {
+        throw new UnauthorizedError('Invalid credentials');
+      }
+
+      const authenticatedUser = await this.getMe(user.id);
+      const { accessToken, refreshToken } = await this.issueTokens(authenticatedUser);
+
+      recordAuditLog({
+        userId: user.id,
+        action: 'AUTH_LOGIN',
+        resource: 'USER',
+        resourceId: user.id,
+        ipAddress,
+        userAgent,
+        metadata: { role: user.role, email: user.email },
+      });
+
+      return {
+        user: authenticatedUser,
+        tokens: { accessToken, refreshToken },
+      };
     }
-
-    if (!user.isActive) {
-      throw new UnauthorizedError('Your account has been deactivated. Please contact support.');
-    }
-
-    const isPasswordValid = await comparePassword(passwordPlain, user.passwordHash);
-    if (!isPasswordValid) {
-      throw new UnauthorizedError('Invalid credentials');
-    }
-
-    const authenticatedUser = this.formatUser(user);
-    const { accessToken, refreshToken } = await this.issueTokens(authenticatedUser);
-
-    recordAuditLog({
-      userId: user.id,
-      action: 'AUTH_LOGIN',
-      resource: 'USER',
-      resourceId: user.id,
-      ipAddress,
-      userAgent,
-      metadata: { role: user.role, email: user.email },
-    });
-
-    return {
-      user: authenticatedUser,
-      tokens: { accessToken, refreshToken },
-    };
   }
 
   /**
@@ -189,19 +326,26 @@ export class AuthService {
     const { userId } = verifyRefreshToken(refreshTokenRaw);
     const tokenHash = hashToken(refreshTokenRaw);
 
-    const tokenRecord = await prisma.refreshToken.findUnique({
-      where: { tokenHash },
-    });
+    if (isDbConnected()) {
+      const tokenRecord = await prisma.refreshToken.findUnique({
+        where: { tokenHash },
+      });
 
-    if (!tokenRecord || tokenRecord.revoked || tokenRecord.expiresAt < new Date()) {
-      throw new UnauthorizedError('Invalid or expired refresh token');
+      if (!tokenRecord || tokenRecord.revoked || tokenRecord.expiresAt < new Date()) {
+        throw new UnauthorizedError('Invalid or expired refresh token');
+      }
+
+      await prisma.refreshToken.update({
+        where: { id: tokenRecord.id },
+        data: { revoked: true },
+      });
+    } else {
+      const tokenRecord = inMemoryDb.refreshTokens.find((t) => t.tokenHash === tokenHash);
+      if (!tokenRecord || tokenRecord.revoked || tokenRecord.expiresAt < new Date()) {
+        throw new UnauthorizedError('Invalid or expired refresh token');
+      }
+      tokenRecord.revoked = true;
     }
-
-    // Revoke old refresh token (Token Rotation Security)
-    await prisma.refreshToken.update({
-      where: { id: tokenRecord.id },
-      data: { revoked: true },
-    });
 
     const user = await this.getMe(userId);
     const newTokens = await this.issueTokens(user);
@@ -224,10 +368,18 @@ export class AuthService {
   async logout(refreshTokenRaw?: string, userId?: string): Promise<void> {
     if (refreshTokenRaw) {
       const tokenHash = hashToken(refreshTokenRaw);
-      await prisma.refreshToken.updateMany({
-        where: { tokenHash },
-        data: { revoked: true },
-      });
+      if (isDbConnected()) {
+        await prisma.refreshToken.updateMany({
+          where: { tokenHash },
+          data: { revoked: true },
+        });
+      } else {
+        inMemoryDb.refreshTokens
+          .filter((t) => t.tokenHash === tokenHash)
+          .forEach((t) => {
+            t.revoked = true;
+          });
+      }
     }
 
     if (userId) {
@@ -244,20 +396,77 @@ export class AuthService {
    * Fetches full profile for the authenticated user
    */
   async getMe(userId: string): Promise<AuthenticatedUser> {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        doctorProfile: true,
-        shopProfile: true,
-        patientProfile: true,
-      },
-    });
+    if (isDbConnected()) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          doctorProfile: true,
+          shopProfile: true,
+          patientProfile: true,
+        },
+      });
 
-    if (!user) {
-      throw new UnauthorizedError('User profile not found');
+      if (!user) {
+        throw new UnauthorizedError('User profile not found');
+      }
+
+      return this.formatUser(user);
+    } else {
+      const user = inMemoryDb.users.find((u) => u.id === userId);
+      if (!user) {
+        throw new UnauthorizedError('User profile not found');
+      }
+
+      const doctorProfile = inMemoryDb.doctors.find((d) => d.userId === userId) || null;
+      const shopProfile = inMemoryDb.shops.find((s) => s.userId === userId) || null;
+      const patientProfile = inMemoryDb.patients.find((p) => p.userId === userId) || null;
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        isActive: user.isActive,
+        doctorProfile: doctorProfile
+          ? {
+              id: doctorProfile.id,
+              userId: doctorProfile.userId,
+              specialization: doctorProfile.specialization,
+              registrationNo: doctorProfile.registrationNo,
+              clinicAddress: doctorProfile.clinicAddress,
+              verificationStatus: doctorProfile.verificationStatus,
+              verifiedAt: doctorProfile.verifiedAt?.toISOString() || null,
+              rejectionReason: doctorProfile.rejectionReason,
+            }
+          : null,
+        shopProfile: shopProfile
+          ? {
+              id: shopProfile.id,
+              userId: shopProfile.userId,
+              shopName: shopProfile.shopName,
+              licenseNo: shopProfile.licenseNo,
+              address: shopProfile.address,
+              phone: shopProfile.phone,
+              timings: shopProfile.timings,
+              verificationStatus: shopProfile.verificationStatus,
+              verifiedAt: shopProfile.verifiedAt?.toISOString() || null,
+              rejectionReason: shopProfile.rejectionReason,
+            }
+          : null,
+        patientProfile: patientProfile
+          ? {
+              id: patientProfile.id,
+              userId: patientProfile.userId,
+              dob: patientProfile.dob.toISOString().split('T')[0],
+              gender: patientProfile.gender,
+              address: patientProfile.address,
+              bloodGroup: patientProfile.bloodGroup,
+              emergencyContact: patientProfile.emergencyContact,
+            }
+          : null,
+      };
     }
-
-    return this.formatUser(user);
   }
 
   private async issueTokens(user: AuthenticatedUser): Promise<{ accessToken: string; refreshToken: string }> {
@@ -278,14 +487,26 @@ export class AuthService {
     // Store hashed refresh token in database (7-day validity)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
+    const tokenHash = hashToken(refreshToken);
 
-    await prisma.refreshToken.create({
-      data: {
+    if (isDbConnected()) {
+      await prisma.refreshToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+        },
+      });
+    } else {
+      inMemoryDb.refreshTokens.push({
+        id: crypto.randomUUID(),
         userId: user.id,
-        tokenHash: hashToken(refreshToken),
+        tokenHash,
         expiresAt,
-      },
-    });
+        revoked: false,
+        createdAt: new Date(),
+      });
+    }
 
     return { accessToken, refreshToken };
   }
