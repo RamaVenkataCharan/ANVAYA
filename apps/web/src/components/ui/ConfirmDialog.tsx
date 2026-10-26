@@ -15,6 +15,7 @@ interface ConfirmDialogProps {
   inputLabel?: string;
   inputPlaceholder?: string;
   inputErrorMessage?: string;
+  inputMinLength?: number;
   isSubmitting?: boolean;
 }
 
@@ -31,13 +32,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   inputLabel = 'Reason',
   inputPlaceholder = 'Please enter a detailed reason...',
   inputErrorMessage = 'This field is required',
+  inputMinLength = 5,
   isSubmitting = false,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState(false);
 
   const handleConfirm = async () => {
-    if (requiresInput && !inputValue.trim()) {
+    if (requiresInput && (!inputValue.trim() || inputValue.trim().length < inputMinLength)) {
       setError(true);
       return;
     }

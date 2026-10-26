@@ -65,10 +65,23 @@ export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
-export const verifyEntitySchema = z.object({
-  status: z.enum(['APPROVED', 'REJECTED']),
-  reason: z.string().optional(),
-});
+export const verifyEntitySchema = z
+  .object({
+    status: z.enum(['APPROVED', 'REJECTED']),
+    reason: z.string().trim().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.status === 'REJECTED') {
+        return typeof data.reason === 'string' && data.reason.trim().length >= 5;
+      }
+      return true;
+    },
+    {
+      message: 'Rejection reason is required (minimum 5 characters)',
+      path: ['reason'],
+    }
+  );
 
 export type RegisterDoctorInput = z.infer<typeof registerDoctorSchema>;
 export type RegisterShopInput = z.infer<typeof registerShopSchema>;

@@ -491,8 +491,8 @@ export const AdminVerificationsPage: React.FC = () => {
         variant={confirmModal.action === 'APPROVED' ? 'primary' : 'danger'}
         requiresInput={confirmModal.action === 'REJECTED'}
         inputLabel="Reason for Rejection"
-        inputPlaceholder="e.g. License expired on 2026-08-01, or Medical registration number does not match council directory..."
-        inputErrorMessage="A rejection reason is required for administrative compliance"
+        inputErrorMessage="A rejection reason of at least 5 characters is required for administrative compliance"
+        inputMinLength={5}
         isSubmitting={verifyMutation.isPending}
       />
     </div>

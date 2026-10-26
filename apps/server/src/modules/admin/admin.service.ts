@@ -1,7 +1,7 @@
 import { VerificationStatus, Role } from '@anvaya/shared';
 import { prisma, isDbConnected } from '../../config/prisma';
 import { inMemoryDb } from '../../db/inMemoryDb';
-import { NotFoundError } from '../../utils/errors';
+import { BadRequestError, NotFoundError } from '../../utils/errors';
 import { recordAuditLog } from '../../middleware/audit';
 
 export class AdminService {
@@ -78,6 +78,10 @@ export class AdminService {
     rejectionReason?: string,
     adminUserId?: string
   ) {
+    if (status === VerificationStatus.REJECTED && (!rejectionReason || !rejectionReason.trim() || rejectionReason.trim().length < 5)) {
+      throw new BadRequestError('Rejection reason is required (minimum 5 characters)');
+    }
+
     if (isDbConnected()) {
       const doctor = await prisma.doctor.findUnique({
         where: { id: doctorId },
@@ -148,6 +152,10 @@ export class AdminService {
     rejectionReason?: string,
     adminUserId?: string
   ) {
+    if (status === VerificationStatus.REJECTED && (!rejectionReason || !rejectionReason.trim() || rejectionReason.trim().length < 5)) {
+      throw new BadRequestError('Rejection reason is required (minimum 5 characters)');
+    }
+
     if (isDbConnected()) {
       const shop = await prisma.shop.findUnique({
         where: { id: shopId },
