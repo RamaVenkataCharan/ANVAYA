@@ -117,7 +117,7 @@ export const AdminUsersPage: React.FC = () => {
         {/* Medical Isolation Badge */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/80 text-xs font-semibold self-start sm:self-auto">
           <EyeOff className="w-4 h-4 text-purple-600" />
-          <span>Strict HIPAA Guard: Medical Content Hidden</span>
+          <span>Strict Privacy Guard: Medical Content Hidden</span>
         </div>
       </div>
 

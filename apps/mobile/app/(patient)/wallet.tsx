@@ -143,7 +143,7 @@ export default function PatientWalletScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Prescription Wallet</Text>
           <Text style={styles.subtitle}>
-            Your digital prescriptions with cryptographic QR codes for pharmacy dispensing
+            Your digital prescriptions with single-use QR codes for pharmacy dispensing
           </Text>
         </View>
 

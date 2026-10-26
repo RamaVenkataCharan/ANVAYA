@@ -16,11 +16,11 @@ export const Footer: React.FC = () => {
               <span className="text-xl font-extrabold tracking-tight text-white">ANVAYA</span>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Paperless healthcare for doctors, pharmacies and patients. Cryptographically verifiable prescriptions and consent-driven health data.
+              Paperless healthcare for doctors, pharmacies and patients. Built with consent-based access and audit logging; not certified or reviewed for regulatory compliance.
             </p>
             <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              HIPAA & ABDM Compliant Architecture
+              Consent-Based Access & Audit Logging
             </div>
           </div>
 
@@ -65,7 +65,7 @@ export const Footer: React.FC = () => {
               </li>
               <li className="flex items-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Immutable Audit Trail
+                Tamper-Evident Audit Log
               </li>
               <li className="flex items-center gap-2">
                 <FileCheck2 className="w-3.5 h-3.5 text-emerald-400" />

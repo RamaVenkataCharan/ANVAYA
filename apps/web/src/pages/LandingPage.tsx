@@ -34,7 +34,7 @@ export const LandingPage: React.FC = () => {
       number: '01',
       title: 'Issue',
       subtitle: 'Doctor writes digital Rx',
-      desc: 'Doctor examines the patient, selects medicines from the structured catalog with frequencies and dosage, and signs the prescription. A unique readable code (ANV-XXXX-XXXX) and cryptographic QR hash are generated.',
+      desc: 'Doctor examines the patient, selects medicines from the structured catalog with frequencies and dosage, and issues the prescription. A unique readable code (ANV-XXXX-XXXX) and single-use QR token are generated.',
       icon: Stethoscope,
       badge: 'Step 1: Clinical Consultation',
       color: 'from-sky-500 to-blue-600',
@@ -44,7 +44,7 @@ export const LandingPage: React.FC = () => {
       number: '02',
       title: 'Wallet / QR',
       subtitle: 'Patient receives in app',
-      desc: 'The prescription lands in the patient’s ANVAYA digital wallet instantly with push notification. The cryptographic QR is accessible offline, preventing reliance on patchy cellular connectivity.',
+      desc: 'The prescription lands in the patient’s ANVAYA digital wallet instantly with push notification, displaying a single-use QR code ready for pharmacy verification.',
       icon: Smartphone,
       badge: 'Step 2: Instant Delivery',
       color: 'from-emerald-500 to-teal-600',
@@ -98,7 +98,7 @@ export const LandingPage: React.FC = () => {
               </h1>
 
               <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-                Eliminating paper prescriptions, pharmacy queues, and medication errors through cryptographically verifiable, consent-driven digital healthcare. Single-dispense guarantee with atomic anti-fraud protection.
+                Eliminating paper prescriptions, pharmacy queues, and medication errors through single-use QR codes and consent-driven digital healthcare. Built with consent-based access and audit logging; not certified or reviewed for regulatory compliance.
               </p>
 
               <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-4">
@@ -210,7 +210,7 @@ export const LandingPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Cryptographic QR Representation */}
+                    {/* Single-Use QR Representation */}
                     <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100/80 flex items-center gap-4">
                       <div className="w-16 h-16 bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center shrink-0">
                         <QrCode className="w-14 h-14 text-slate-800" />
@@ -218,10 +218,10 @@ export const LandingPage: React.FC = () => {
                       <div className="min-w-0 flex-1 text-xs">
                         <div className="font-bold text-slate-800 flex items-center gap-1.5">
                           <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                          Cryptographically Signed
+                          Single-Use QR Codes
                         </div>
                         <p className="text-slate-500 text-[11px] mt-0.5 leading-snug">
-                          Tamper-proof SHA256 signature guarantees zero counterfeit or double-dispense.
+                          High-entropy single-use token and atomic database locking prevent double-dispensing.
                         </p>
                       </div>
                     </div>
@@ -296,11 +296,11 @@ export const LandingPage: React.FC = () => {
                   </li>
                   <li className="flex items-start gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span><strong>Cryptographic Signing:</strong> Anti-tamper digital signature on every issued prescription.</span>
+                    <span><strong>Single-Use QR Codes:</strong> Anti-counterfeit single-use token and atomic dispense lock on every issued prescription.</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span><strong>Verified Credentials:</strong> Medical council registration verified by admin before issuance.</span>
+                    <span><strong>Admin-Reviewed Verification:</strong> Provider credentials reviewed and approved by administrators prior to activation.</span>
                   </li>
                 </ul>
               </div>
@@ -364,13 +364,13 @@ export const LandingPage: React.FC = () => {
                   <h3 className="text-2xl font-bold text-slate-900 mt-1">For Patients</h3>
                 </div>
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Your complete healthcare history in your pocket. Offline-accessible prescriptions, secure record vault, and total consent sovereignty.
+                  Your complete healthcare history in your pocket. Digital prescription wallet, secure record vault, and total consent sovereignty.
                 </p>
 
                 <ul className="space-y-3 pt-2 text-sm text-slate-700">
                   <li className="flex items-start gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span><strong>Offline Digital Wallet:</strong> Carry high-resolution QR codes accessible without mobile data.</span>
+                    <span><strong>Digital Prescription Wallet:</strong> Carry clear, high-resolution QR codes for rapid pharmacy dispensing.</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -491,7 +491,7 @@ export const LandingPage: React.FC = () => {
               Security, privacy and compliance by design
             </h2>
             <p className="text-base text-slate-600">
-              Health records demand military-grade privacy. ANVAYA implements zero-knowledge administrative boundaries and cryptographic verification.
+              Health records demand strict privacy. ANVAYA implements consent-based access boundaries and tamper-evident audit logging.
             </p>
           </div>
 
@@ -512,7 +512,7 @@ export const LandingPage: React.FC = () => {
               <div className="w-12 h-12 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">
                 <History className="w-6 h-6" />
               </div>
-              <h4 className="text-base font-bold text-slate-900">Immutable Audit Trail</h4>
+              <h4 className="text-base font-bold text-slate-900">Tamper-Evident Audit Log</h4>
               <p className="text-xs text-slate-600 leading-relaxed">
                 Every login, prescription issue, QR verification, and medication dispense is stamped with IP address, user agent, and timestamp for strict accountability.
               </p>
@@ -523,9 +523,9 @@ export const LandingPage: React.FC = () => {
               <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h4 className="text-base font-bold text-slate-900">Verified Providers</h4>
+              <h4 className="text-base font-bold text-slate-900">Admin-Reviewed Providers</h4>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Medical council registration (MCI/NMC) and government pharmacy drug licenses are verified by administrators before prescribing or dispensing capabilities are activated.
+                Medical registration numbers and pharmacy drug licenses undergo admin-reviewed provider verification before prescribing or dispensing capabilities are activated.
               </p>
             </div>
 

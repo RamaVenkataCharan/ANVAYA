@@ -197,7 +197,7 @@ export default function NewPrescriptionScreen() {
           </View>
           <Text style={styles.successTitle}>Prescription Issued!</Text>
           <Text style={styles.successSubtitle}>
-            The prescription has been cryptographically signed and stored on the ANVAYA network.
+            The prescription has been generated with a single-use QR code and stored on the ANVAYA network.
           </Text>
 
           <View style={styles.codeCard}>

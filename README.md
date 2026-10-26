@@ -117,29 +117,29 @@ ANVAYA/
 
 ### 👨‍⚕️ Verified Doctor
 - **Phone Lookup with Privacy Guard**: Quickly look up registered patients by phone (`GET /patients/lookup?phone=...`) to issue prescriptions without exposing private contact or historical medical details.
-- **Digital E-Prescriptions**: Compose clear, structured prescriptions with dosage, frequency, course duration, and food instructions. Generates human-readable codes (`ANV-YYYY-XXXX`) and signed cryptographic QR tokens.
+- **Digital E-Prescriptions**: Compose clear, structured prescriptions with dosage, frequency, course duration, and food instructions. Generates human-readable codes (`ANV-YYYY-XXXX`) and single-use QR codes.
 - **Appointment Calendar**: Track and fulfill patient appointments.
 - **Consent-Gated Patient Records**: Access historical lab tests, scans, and previous prescriptions only when granted active, digital consent by the patient.
 
 ### 💊 Verified Medical Shop Owner (Pharmacy)
 - **Instant QR & Code Verification**: Verify prescription authenticity in real-time, inspect prescribed medicines, and confirm patient identity.
 - **Atomic One-Time Dispense**: Irreversibly locks prescriptions upon dispensing. Any subsequent attempt to re-dispense the same prescription is immediately blocked at the database level to prevent fraud.
-- **Digital Billing & Invoicing**: Generate formal tax invoices (`INV-YYYY-XXXXXX`) linked to prescriptions and patients.
+- **Digital Billing & Invoicing**: Generate itemized pharmacy bills and invoices (`INV-YYYY-XXXXXX`) linked to prescriptions and patients.
 - **Khata Credit Ledger**: Support local community trust with Khata credit. Automatically creates atomic ledger records when bills are settled via `KHATA_CREDIT`, calculates real-time customer balances, and records partial debt repayments.
 - **Automated Refill Reminders**: Schedule refill reminders for chronic illnesses that automatically notify patients before their medication runs out.
 
 ### 🧑 Patient
-- **Prescription Wallet**: Access digital prescriptions anytime on the mobile app; display encrypted QR codes to pharmacists.
+- **Prescription Wallet**: Access digital prescriptions on the mobile app; display single-use QR codes to pharmacists.
 - **Verified Pharmacy & Doctor Directory**: Locate verified medical professionals with registered clinic timings, licenses, and addresses.
 - **Health Records Vault**: Securely upload diagnostic reports, lab results, and discharge summaries with end-to-end access controls.
 - **Granular Consent Management**: Grant time-bound or permanent access to specific doctors; revoke consent at any moment with immediate effect.
 
 ### 🛡 Administrator
-- **Verification Workflow**: Review provider credentials (Medical Council numbers for doctors, Drug Licenses for pharmacies). Approve or reject with mandatory compliance reasons.
+- **Admin-Reviewed Provider Verification**: Review provider credentials (Medical Council numbers for doctors, Drug Licenses for pharmacies). Approve or reject with mandatory compliance reasons.
 - **System Metrics Dashboard**: Real-time counts of active users, doctors, pharmacies, prescriptions issued vs. dispensed, and total billing volume.
 - **User Directory & Account Suspension**: Search and filter platform users with one-click emergency suspension and reactivation controls.
 - **Privacy Boundary**: Patient diagnostic and clinical records are completely excluded from administrative views to uphold patient confidentiality.
-- **Tamper-Evident Audit Trail**: Every sensitive action (verification decisions, user suspensions, dispensing events, bill creation) is permanently recorded with user ID, IP address, and timestamp.
+- **Tamper-Evident Audit Log**: Every sensitive action (verification decisions, user suspensions, dispensing events, bill creation) is permanently recorded with user ID, IP address, and timestamp.
 
 ---
 
@@ -344,7 +344,7 @@ e-prescription.                wallet with QR token.          & issues Khata bil
 3. Review **Pending Verifications**:
    - Inspect Dr. Vikram Rao's pending profile and Jan Aushadhi Kendra's drug license.
    - Approve or reject with compliance notes.
-4. Open the **Audit Logs** tab to view the immutable trail of logins, verifications, and prescription dispensing events.
+4. Open the **Audit Logs** tab to view the tamper-evident audit log of logins, verifications, and prescription dispensing events.
 
 ---
 
@@ -398,7 +398,7 @@ Base URL: `http://localhost:4000/api/v1`
 | `GET` | `/admin/users` | Admin | Search/filter platform users (privacy safe) |
 | `POST` | `/admin/users/:id/suspend` | Admin | Suspend user account immediately |
 | `POST` | `/admin/users/:id/reactivate` | Admin | Reactivate suspended user account |
-| `GET` | `/admin/audit` | Admin | Search and inspect immutable audit trail |
+| `GET` | `/admin/audit` | Admin | Search and inspect tamper-evident audit log |
 
 ---
 
@@ -472,6 +472,14 @@ docker run -d \
    - Mobile authentication uses direct credential verification in this build. Production deployment to India requires integration with a TRAI-compliant DLT SMS gateway (e.g., Fast2SMS or Twilio).
 4. **Object Storage**:
    - File uploads support both local disk storage (`/uploads`) and S3-compatible endpoints (AWS S3, Cloudflare R2, MinIO). Local disk storage requires persistent volume mounting in containerized environments.
+5. **Not Certified for Clinical Use**:
+   - ANVAYA is an architectural prototype and reference platform built with consent-based access and audit logging; it is not certified or reviewed for clinical use or regulatory compliance.
+6. **Manual Provider Verification**:
+   - Provider credential verification (medical registration numbers and pharmacy drug licenses) is manual via administrator review; there is no automated API integration with national medical councils or state drug registries.
+7. **No Offline Mode**:
+   - There is no offline mode or offline caching. Viewing prescriptions, displaying QR codes, and conducting pharmacy dispensing require active network connectivity.
+8. **No GST/HSN Breakdown**:
+   - Invoicing computes item subtotals, standard percentage tax, and final totals, but does not provide GSTIN verification, HSN/SAC code breakdowns, or multi-rate CGST/SGST/IGST tax reporting.
 
 ---
 

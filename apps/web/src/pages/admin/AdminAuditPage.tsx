@@ -79,7 +79,7 @@ export const AdminAuditPage: React.FC = () => {
 
         <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>Cryptographically Sealed Log</span>
+          <span>Tamper-Evident System Audit Trail</span>
         </div>
       </div>
 
