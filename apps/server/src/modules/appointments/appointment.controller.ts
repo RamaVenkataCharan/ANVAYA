@@ -63,7 +63,8 @@ export class AppointmentController {
   async getAppointmentById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const appointment = await appointmentService.getAppointmentById(id);
+      const authReq = req as AuthRequest;
+      const appointment = await appointmentService.getAppointmentById(id, authReq.user);
 
       res.status(200).json({
         success: true,

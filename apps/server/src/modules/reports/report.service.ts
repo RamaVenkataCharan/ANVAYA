@@ -129,22 +129,28 @@ export class ReportService {
       if (!report) throw new NotFoundError('Report not found');
 
       // Enforce ownership or consent
-      if (patientId && report.patientId !== patientId) {
-        throw new ForbiddenError('You do not have access to this report');
-      }
-      if (callerDoctorId) {
+      if (patientId) {
+        if (report.patientId !== patientId) {
+          throw new ForbiddenError('You do not have access to this report');
+        }
+      } else if (callerDoctorId) {
         await this.assertConsent(report.patientId, callerDoctorId);
+      } else {
+        throw new ForbiddenError('Access denied: Only the patient owner or an authorized doctor with active consent can view this report');
       }
       reportData = report;
     } else {
       const report = inMemoryDb.reports.find((r) => r.id === id);
       if (!report) throw new NotFoundError('Report not found');
 
-      if (patientId && report.patientId !== patientId) {
-        throw new ForbiddenError('You do not have access to this report');
-      }
-      if (callerDoctorId) {
+      if (patientId) {
+        if (report.patientId !== patientId) {
+          throw new ForbiddenError('You do not have access to this report');
+        }
+      } else if (callerDoctorId) {
         await this.assertConsent(report.patientId, callerDoctorId);
+      } else {
+        throw new ForbiddenError('Access denied: Only the patient owner or an authorized doctor with active consent can view this report');
       }
       reportData = this.formatReport(report);
     }
@@ -173,11 +179,14 @@ export class ReportService {
 
     if (!report) throw new NotFoundError('Report not found');
 
-    if (patientId && report.patientId !== patientId) {
-      throw new ForbiddenError('You do not have access to this report file');
-    }
-    if (callerDoctorId) {
+    if (patientId) {
+      if (report.patientId !== patientId) {
+        throw new ForbiddenError('You do not have access to this report file');
+      }
+    } else if (callerDoctorId) {
       await this.assertConsent(report.patientId, callerDoctorId);
+    } else {
+      throw new ForbiddenError('Access denied: Only the patient owner or an authorized doctor with active consent can view this report file');
     }
 
     // Extract fileKey from fileUrl (e.g. /api/v1/reports/files/uuid.pdf -> uuid.pdf)

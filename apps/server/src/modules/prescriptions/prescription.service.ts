@@ -153,9 +153,29 @@ export class PrescriptionService {
   }
 
   /**
-   * Retrieves single prescription by ID
+   * Checks whether a doctor has active consent to view a patient's clinical records
    */
-  async getPrescriptionById(id: string) {
+  async checkDoctorHasConsent(patientId: string, doctorId: string): Promise<boolean> {
+    if (isDbConnected()) {
+      const consent = await prisma.consent.findFirst({
+        where: { patientId, doctorId, isActive: true },
+      });
+      return !!consent;
+    } else {
+      const consent = inMemoryDb.consents.find(
+        (c) => c.patientId === patientId && c.doctorId === doctorId && c.isActive
+      );
+      return !!consent;
+    }
+  }
+
+  /**
+   * Retrieves single prescription by ID with strict ownership & consent enforcement
+   */
+  async getPrescriptionById(
+    id: string,
+    caller?: { role?: Role; patientId?: string; doctorId?: string; userId?: string }
+  ) {
     if (isDbConnected()) {
       const prescription = await prisma.prescription.findUnique({
         where: { id },
@@ -177,12 +197,61 @@ export class PrescriptionService {
         throw new NotFoundError('Prescription not found');
       }
 
+      if (caller) {
+        if (caller.role === Role.PATIENT) {
+          if (!caller.patientId || prescription.patientId !== caller.patientId) {
+            throw new ForbiddenError('You do not have permission to view this prescription');
+          }
+        } else if (caller.role === Role.DOCTOR) {
+          if (!caller.doctorId) {
+            throw new ForbiddenError('Doctor profile not found');
+          }
+          if (prescription.doctorId !== caller.doctorId) {
+            const hasConsent = await this.checkDoctorHasConsent(prescription.patientId, caller.doctorId);
+            if (!hasConsent) {
+              throw new ForbiddenError(
+                'You do not have permission to view this prescription without active patient consent'
+              );
+            }
+          }
+        } else {
+          throw new ForbiddenError(
+            'Access forbidden: Prescriptions can only be viewed by the patient or authorized doctor'
+          );
+        }
+      }
+
       return prescription;
     } else {
       const pres = inMemoryDb.prescriptions.find((p) => p.id === id);
       if (!pres) {
         throw new NotFoundError('Prescription not found');
       }
+
+      if (caller) {
+        if (caller.role === Role.PATIENT) {
+          if (!caller.patientId || pres.patientId !== caller.patientId) {
+            throw new ForbiddenError('You do not have permission to view this prescription');
+          }
+        } else if (caller.role === Role.DOCTOR) {
+          if (!caller.doctorId) {
+            throw new ForbiddenError('Doctor profile not found');
+          }
+          if (pres.doctorId !== caller.doctorId) {
+            const hasConsent = await this.checkDoctorHasConsent(pres.patientId, caller.doctorId);
+            if (!hasConsent) {
+              throw new ForbiddenError(
+                'You do not have permission to view this prescription without active patient consent'
+              );
+            }
+          }
+        } else {
+          throw new ForbiddenError(
+            'Access forbidden: Prescriptions can only be viewed by the patient or authorized doctor'
+          );
+        }
+      }
+
       const items = inMemoryDb.prescriptionItems.filter((i) => i.prescriptionId === pres.id);
       return this.formatPrescription(pres, items);
     }

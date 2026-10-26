@@ -38,7 +38,7 @@ router.get(
  */
 router.get(
   '/:id',
-  requireRole(Role.DOCTOR, Role.PATIENT, Role.ADMIN),
+  requireRole(Role.DOCTOR, Role.PATIENT),
   (req, res, next) => appointmentController.getAppointmentById(req, res, next)
 );
 

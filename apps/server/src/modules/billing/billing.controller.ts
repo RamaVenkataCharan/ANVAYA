@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { billingService } from './billing.service';
 import { AuthRequest } from '../../middleware/auth';
+import { Role } from '@anvaya/shared';
+import { ForbiddenError } from '../../utils/errors';
 
 export class BillingController {
   /**
@@ -63,7 +65,8 @@ export class BillingController {
   async getBillById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const bill = await billingService.getBillById(id);
+      const authReq = req as AuthRequest;
+      const bill = await billingService.getBillById(id, authReq.user);
 
       res.status(200).json({
         success: true,
@@ -146,26 +149,36 @@ export class BillingController {
   async getPatientKhataBalance(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authReq = req as AuthRequest;
-      const { shopId } = authReq.user;
+      const { role, shopId, patientId: tokenPatientId } = authReq.user;
       const { patientId } = req.params;
 
-      if (!shopId) {
-        res.status(403).json({
-          success: false,
-          error: 'ForbiddenError',
-          message: 'Shop profile not found in token',
+      if (role === Role.PATIENT) {
+        if (tokenPatientId !== patientId) {
+          throw new ForbiddenError('You can only view your own Khata balance');
+        }
+        const balance = await billingService.getPatientKhataBalance(undefined, patientId);
+        res.status(200).json({
+          success: true,
+          data: balance,
           timestamp: new Date().toISOString(),
         });
         return;
       }
 
-      const balance = await billingService.getPatientKhataBalance(shopId, patientId);
+      if (role === Role.SHOP) {
+        if (!shopId) {
+          throw new ForbiddenError('Shop profile not found in token');
+        }
+        const balance = await billingService.getPatientKhataBalance(shopId, patientId);
+        res.status(200).json({
+          success: true,
+          data: balance,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
 
-      res.status(200).json({
-        success: true,
-        data: balance,
-        timestamp: new Date().toISOString(),
-      });
+      throw new ForbiddenError('Access forbidden: Only the patient or pharmacy can view this balance');
     } catch (error) {
       next(error);
     }

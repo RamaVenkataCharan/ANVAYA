@@ -208,9 +208,12 @@ export class BillingService {
   }
 
   /**
-   * Returns a single bill by ID
+   * Returns a single bill by ID with caller ownership checks
    */
-  async getBillById(id: string) {
+  async getBillById(
+    id: string,
+    caller?: { role?: Role; shopId?: string; patientId?: string }
+  ) {
     if (isDbConnected()) {
       const bill = await prisma.bill.findUnique({
         where: { id },
@@ -221,10 +224,36 @@ export class BillingService {
         },
       });
       if (!bill) throw new NotFoundError('Bill not found');
+
+      if (caller) {
+        if (caller.role === Role.SHOP && bill.shopId !== caller.shopId) {
+          throw new ForbiddenError('You can only view bills issued by your shop');
+        }
+        if (caller.role === Role.PATIENT && bill.patientId !== caller.patientId) {
+          throw new ForbiddenError('You can only view your own bills');
+        }
+        if (caller.role !== Role.SHOP && caller.role !== Role.PATIENT) {
+          throw new ForbiddenError('Access forbidden: Bills can only be viewed by the issuing pharmacy or billed patient');
+        }
+      }
+
       return bill;
     } else {
       const bill = inMemoryDb.bills.find((b) => b.id === id);
       if (!bill) throw new NotFoundError('Bill not found');
+
+      if (caller) {
+        if (caller.role === Role.SHOP && bill.shopId !== caller.shopId) {
+          throw new ForbiddenError('You can only view bills issued by your shop');
+        }
+        if (caller.role === Role.PATIENT && bill.patientId !== caller.patientId) {
+          throw new ForbiddenError('You can only view your own bills');
+        }
+        if (caller.role !== Role.SHOP && caller.role !== Role.PATIENT) {
+          throw new ForbiddenError('Access forbidden: Bills can only be viewed by the issuing pharmacy or billed patient');
+        }
+      }
+
       const items = inMemoryDb.billItems.filter((i) => i.billId === id);
       return this.formatBill(bill, items);
     }
@@ -319,13 +348,16 @@ export class BillingService {
   /**
    * Returns the outstanding Khata (credit) balance for a patient at a given shop
    */
-  async getPatientKhataBalance(shopId: string, patientId: string) {
+  async getPatientKhataBalance(shopId: string | undefined, patientId: string) {
     if (isDbConnected()) {
       const patient = await prisma.patient.findUnique({ where: { id: patientId } });
       if (!patient) throw new NotFoundError('Patient not found');
 
+      const where: any = { patientId };
+      if (shopId) where.shopId = shopId;
+
       const entries = await prisma.ledgerEntry.findMany({
-        where: { shopId, patientId },
+        where,
       });
 
       let totalCredit = 0;
@@ -337,13 +369,13 @@ export class BillingService {
       }
       const balance = totalCredit - totalPayment;
 
-      return { patientId, shopId, balance, totalCredit, totalPayment };
+      return { patientId, shopId: shopId || null, balance, totalCredit, totalPayment };
     } else {
       const patient = inMemoryDb.patients.find((p) => p.id === patientId);
       if (!patient) throw new NotFoundError('Patient not found');
 
       const entries = inMemoryDb.ledgerEntries.filter(
-        (e) => e.shopId === shopId && e.patientId === patientId
+        (e) => (shopId ? e.shopId === shopId : true) && e.patientId === patientId
       );
 
       let totalCredit = 0;
@@ -355,7 +387,7 @@ export class BillingService {
       }
       const balance = totalCredit - totalPayment;
 
-      return { patientId, shopId, balance, totalCredit, totalPayment };
+      return { patientId, shopId: shopId || null, balance, totalCredit, totalPayment };
     }
   }
 

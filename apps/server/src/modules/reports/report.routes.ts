@@ -60,17 +60,17 @@ router.get(
  */
 router.get(
   '/:id/file',
-  requireRole(Role.PATIENT, Role.DOCTOR, Role.ADMIN),
+  requireRole(Role.PATIENT, Role.DOCTOR),
   (req, res, next) => reportController.getReportFile(req, res, next)
 );
 
 /**
  * GET /reports/:id
- * Get a specific report (Patient: own; Doctor: with consent; Admin: any)
+ * Get a specific report (Patient: own; Doctor: with consent)
  */
 router.get(
   '/:id',
-  requireRole(Role.PATIENT, Role.DOCTOR, Role.ADMIN),
+  requireRole(Role.PATIENT, Role.DOCTOR),
   (req, res, next) => reportController.getReportById(req, res, next)
 );
 

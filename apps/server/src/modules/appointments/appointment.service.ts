@@ -114,9 +114,12 @@ export class AppointmentService {
   }
 
   /**
-   * Returns a single appointment by ID
+   * Returns a single appointment by ID with caller ownership enforcement
    */
-  async getAppointmentById(id: string) {
+  async getAppointmentById(
+    id: string,
+    caller?: { role?: Role; doctorId?: string; patientId?: string }
+  ) {
     if (isDbConnected()) {
       const appt = await prisma.appointment.findUnique({
         where: { id },
@@ -131,10 +134,36 @@ export class AppointmentService {
       });
 
       if (!appt) throw new NotFoundError('Appointment not found');
+
+      if (caller) {
+        if (caller.role === Role.DOCTOR && appt.doctorId !== caller.doctorId) {
+          throw new ForbiddenError('You can only view your own appointments');
+        }
+        if (caller.role === Role.PATIENT && appt.patientId !== caller.patientId) {
+          throw new ForbiddenError('You can only view your own appointments');
+        }
+        if (caller.role !== Role.DOCTOR && caller.role !== Role.PATIENT) {
+          throw new ForbiddenError('Access forbidden: Appointments can only be viewed by the patient or doctor');
+        }
+      }
+
       return appt;
     } else {
       const appt = inMemoryDb.appointments.find((a) => a.id === id);
       if (!appt) throw new NotFoundError('Appointment not found');
+
+      if (caller) {
+        if (caller.role === Role.DOCTOR && appt.doctorId !== caller.doctorId) {
+          throw new ForbiddenError('You can only view your own appointments');
+        }
+        if (caller.role === Role.PATIENT && appt.patientId !== caller.patientId) {
+          throw new ForbiddenError('You can only view your own appointments');
+        }
+        if (caller.role !== Role.DOCTOR && caller.role !== Role.PATIENT) {
+          throw new ForbiddenError('Access forbidden: Appointments can only be viewed by the patient or doctor');
+        }
+      }
+
       return this.formatAppointment(appt);
     }
   }

@@ -84,7 +84,7 @@ router.post(
  */
 router.get(
   '/:id',
-  requireRole(Role.DOCTOR, Role.PATIENT, Role.SHOP, Role.ADMIN),
+  requireRole(Role.DOCTOR, Role.PATIENT),
   (req, res, next) => prescriptionController.getPrescriptionById(req, res, next)
 );
 

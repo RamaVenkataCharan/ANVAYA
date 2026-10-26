@@ -42,7 +42,7 @@ router.get(
  */
 router.get(
   '/bills/:id',
-  requireRole(Role.SHOP, Role.PATIENT, Role.ADMIN),
+  requireRole(Role.SHOP, Role.PATIENT),
   (req, res, next) => billingController.getBillById(req, res, next)
 );
 
@@ -76,7 +76,7 @@ router.get(
  */
 router.get(
   '/ledger/balance/:patientId',
-  requireRole(Role.SHOP),
+  requireRole(Role.SHOP, Role.PATIENT),
   (req, res, next) => billingController.getPatientKhataBalance(req, res, next)
 );
 

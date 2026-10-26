@@ -64,7 +64,8 @@ export class PrescriptionController {
   async getPrescriptionById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const prescription = await prescriptionService.getPrescriptionById(id);
+      const authReq = req as AuthRequest;
+      const prescription = await prescriptionService.getPrescriptionById(id, authReq.user);
 
       res.status(200).json({
         success: true,
