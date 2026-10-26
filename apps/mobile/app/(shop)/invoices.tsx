@@ -20,6 +20,7 @@ import * as Sharing from 'expo-sharing';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../store/auth';
+import { escapeHtml } from '@anvaya/shared';
 
 export default function ShopInvoicesScreen() {
   const router = useRouter();
@@ -62,24 +63,36 @@ export default function ShopInvoicesScreen() {
         .map(
           (item: any) => `
           <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">${item.medicine}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 13px;">${item.quantity}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px;">₹${item.unitPrice}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold; font-size: 13px;">₹${item.totalPrice}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">${escapeHtml(item.medicine)}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 13px;">${escapeHtml(item.quantity)}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px;">₹${escapeHtml(item.unitPrice)}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold; font-size: 13px;">₹${escapeHtml(item.totalPrice)}</td>
           </tr>
         `
         )
         .join('');
 
-      const patientName = invoice.patient?.user?.name || 'Walk-in Customer';
-      const patientPhone = invoice.patient?.user?.phone || 'N/A';
-      const formattedDate = new Date(invoice.createdAt).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const patientName = escapeHtml(invoice.patient?.user?.name || 'Walk-in Customer');
+      const patientPhone = escapeHtml(invoice.patient?.user?.phone || 'N/A');
+      const shopName = escapeHtml(shop?.shopName || 'ANVAYA Pharmacy');
+      const shopLicense = escapeHtml(shop?.licenseNo || 'DL-ANV-RETAIL');
+      const shopAddress = escapeHtml(shop?.address || 'Healthcare Partner');
+      const billNumber = escapeHtml(invoice.billNumber);
+      const paymentMethod = escapeHtml(invoice.paymentMethod);
+      const paymentStatus = escapeHtml(invoice.paymentStatus);
+      const invoiceNotes = invoice.notes ? escapeHtml(invoice.notes) : '';
+      const subtotal = escapeHtml(invoice.subtotal);
+      const tax = escapeHtml(invoice.tax);
+      const total = escapeHtml(invoice.total);
+      const formattedDate = escapeHtml(
+        new Date(invoice.createdAt).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
 
       const html = `
         <!DOCTYPE html>
@@ -178,14 +191,14 @@ export default function ShopInvoicesScreen() {
           <body>
             <div class="header">
               <div>
-                <h1 class="pharmacy-title">${shop?.shopName || 'ANVAYA Pharmacy'}</h1>
-                <p class="pharmacy-sub">Drug License: ${shop?.licenseNo || 'DL-ANV-RETAIL'}</p>
-                <p class="pharmacy-sub">${shop?.address || 'Healthcare Partner'}</p>
+                <h1 class="pharmacy-title">${shopName}</h1>
+                <p class="pharmacy-sub">Drug License: ${shopLicense}</p>
+                <p class="pharmacy-sub">${shopAddress}</p>
               </div>
               <div class="invoice-tag">
-                <h2 class="invoice-number">${invoice.billNumber}</h2>
+                <h2 class="invoice-number">${billNumber}</h2>
                 <p class="pharmacy-sub">Date: ${formattedDate}</p>
-                <p class="pharmacy-sub">Method: <strong>${invoice.paymentMethod}</strong></p>
+                <p class="pharmacy-sub">Method: <strong>${paymentMethod}</strong></p>
               </div>
             </div>
 
@@ -196,8 +209,8 @@ export default function ShopInvoicesScreen() {
                 <span style="color: #64748b;">Phone: ${patientPhone}</span>
               </div>
               <div>
-                <strong>Status:</strong> ${invoice.paymentStatus}<br />
-                ${invoice.notes ? `<span style="color: #64748b;">Note: ${invoice.notes}</span>` : ''}
+                <strong>Status:</strong> ${paymentStatus}<br />
+                ${invoiceNotes ? `<span style="color: #64748b;">Note: ${invoiceNotes}</span>` : ''}
               </div>
             </div>
 
@@ -218,22 +231,22 @@ export default function ShopInvoicesScreen() {
             <div class="totals-section">
               <div class="total-row">
                 <span>Subtotal:</span>
-                <span>₹${invoice.subtotal}</span>
+                <span>₹${subtotal}</span>
               </div>
               ${
                 invoice.tax > 0
-                  ? `<div class="total-row"><span>GST / Tax:</span><span>₹${invoice.tax}</span></div>`
+                  ? `<div class="total-row"><span>GST / Tax:</span><span>₹${tax}</span></div>`
                   : ''
               }
               <div class="total-row grand-total">
                 <span>Grand Total:</span>
-                <span>₹${invoice.total}</span>
+                <span>₹${total}</span>
               </div>
             </div>
 
             <div class="footer">
               <p>Verified electronically via ANVAYA Unified Digital Health Platform.</p>
-              <p>Thank you for choosing ${shop?.shopName || 'our pharmacy'}!</p>
+              <p>Thank you for choosing ${shopName}!</p>
             </div>
           </body>
         </html>

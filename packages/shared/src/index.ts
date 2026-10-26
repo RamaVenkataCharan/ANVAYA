@@ -7,3 +7,4 @@ export * from './schemas/report.schema';
 export * from './schemas/consent.schema';
 export * from './schemas/refill.schema';
 export * from './types';
+export * from './utils/html';

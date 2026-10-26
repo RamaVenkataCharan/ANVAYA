@@ -16,6 +16,16 @@ export class PrescriptionService {
    * Issues a new e-prescription with structured medicines, unique code, and QR token
    */
   async createPrescription(doctorId: string, input: CreatePrescriptionInput, doctorUserId?: string) {
+    if (!input.items || input.items.length === 0 || input.items.length > 30) {
+      throw new BadRequestError('Prescription must contain between 1 and 30 items');
+    }
+    if (input.diagnosis && input.diagnosis.length > 500) {
+      throw new BadRequestError('Diagnosis cannot exceed 500 characters');
+    }
+    if (input.notes && input.notes.length > 1000) {
+      throw new BadRequestError('Notes cannot exceed 1000 characters');
+    }
+
     const code = this.generatePrescriptionCode();
     const qrToken = crypto.randomBytes(32).toString('hex');
 
