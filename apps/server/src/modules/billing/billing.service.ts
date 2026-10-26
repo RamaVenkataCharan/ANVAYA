@@ -5,6 +5,93 @@ import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/erro
 import { recordAuditLog } from '../../middleware/audit';
 import crypto from 'crypto';
 
+/**
+ * Financial Calculation & Rounding Specification:
+ * - Currency: INR (Indian Rupee).
+ * - Minor unit: Paise (1 Rupee = 100 Paise).
+ * - Rounding rule: Half-Up rounding to nearest integer paise (Math.round(val * 100)).
+ * - All intermediate arithmetic (line item totals, subtotal, tax, invoice total, ledger entries)
+ *   is strictly computed in integer minor units (paise) to prevent IEEE-754 binary floating point drift.
+ * - Client-supplied totals are strictly verified against server calculation. Any deviation
+ *   is rejected with 400 Bad Request to prevent price tampering and accounting manipulation.
+ */
+function toPaise(rupees: number): number {
+  return Math.round(rupees * 100);
+}
+
+function toRupees(paise: number): number {
+  return paise / 100;
+}
+
+interface ValidatedBillMath {
+  items: Array<{
+    medicine: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+  subtotal: number;
+  tax: number;
+  total: number;
+}
+
+function calculateAndValidateBillMath(input: CreateBillInput): ValidatedBillMath {
+  let subtotalPaise = 0;
+
+  const items = input.items.map((item) => {
+    const unitPricePaise = toPaise(item.unitPrice);
+    const lineTotalPaise = item.quantity * unitPricePaise;
+
+    if (item.totalPrice !== undefined) {
+      const clientLineTotalPaise = toPaise(item.totalPrice);
+      if (clientLineTotalPaise !== lineTotalPaise) {
+        throw new BadRequestError(
+          `Line total mismatch for ${item.medicine}: calculated ${toRupees(lineTotalPaise)} but received ${item.totalPrice}`
+        );
+      }
+    }
+
+    subtotalPaise += lineTotalPaise;
+
+    return {
+      medicine: item.medicine,
+      quantity: item.quantity,
+      unitPrice: toRupees(unitPricePaise),
+      totalPrice: toRupees(lineTotalPaise),
+    };
+  });
+
+  const computedSubtotal = toRupees(subtotalPaise);
+  if (input.subtotal !== undefined) {
+    const clientSubtotalPaise = toPaise(input.subtotal);
+    if (clientSubtotalPaise !== subtotalPaise) {
+      throw new BadRequestError(
+        `Subtotal mismatch: calculated ${computedSubtotal} but received ${input.subtotal}`
+      );
+    }
+  }
+
+  const taxPaise = input.tax !== undefined ? toPaise(input.tax) : 0;
+  const totalPaise = subtotalPaise + taxPaise;
+  const computedTotal = toRupees(totalPaise);
+
+  if (input.total !== undefined) {
+    const clientTotalPaise = toPaise(input.total);
+    if (clientTotalPaise !== totalPaise) {
+      throw new BadRequestError(
+        `Total mismatch: calculated ${computedTotal} but received ${input.total}`
+      );
+    }
+  }
+
+  return {
+    items,
+    subtotal: computedSubtotal,
+    tax: toRupees(taxPaise),
+    total: computedTotal,
+  };
+}
+
 export class BillingService {
   private generateBillNumber(): string {
     const year = new Date().getFullYear();
@@ -16,6 +103,8 @@ export class BillingService {
    * Creates a digital bill/invoice (Shop only)
    */
   async createBill(shopId: string, input: CreateBillInput, shopUserId?: string) {
+    const { items, subtotal, tax, total } = calculateAndValidateBillMath(input);
+
     if (isDbConnected()) {
       if (input.paymentMethod === 'KHATA_CREDIT' && !input.patientId) {
         throw new BadRequestError('Patient is required for Khata Credit billing');
@@ -45,14 +134,14 @@ export class BillingService {
             shopId,
             patientId: input.patientId,
             prescriptionId: input.prescriptionId,
-            subtotal: input.subtotal,
-            tax: input.tax,
-            total: input.total,
+            subtotal,
+            tax,
+            total,
             paymentStatus: input.paymentStatus,
             paymentMethod: input.paymentMethod,
             notes: input.notes,
             items: {
-              create: input.items.map((item) => ({
+              create: items.map((item) => ({
                 medicine: item.medicine,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
@@ -74,7 +163,7 @@ export class BillingService {
               shopId,
               patientId: input.patientId,
               billId: created.id,
-              amount: input.total,
+              amount: total,
               type: LedgerType.CREDIT,
               description: `Credit for bill ${billNumber}`,
             },
@@ -89,7 +178,7 @@ export class BillingService {
         action: 'BILL_CREATED',
         resource: 'BILL',
         resourceId: bill.id,
-        metadata: { billNumber: bill.billNumber, total: input.total, patientId: input.patientId },
+        metadata: { billNumber: bill.billNumber, total, patientId: input.patientId },
       });
 
       return bill;
@@ -120,9 +209,9 @@ export class BillingService {
         shopId,
         patientId: input.patientId || null,
         prescriptionId: input.prescriptionId || null,
-        subtotal: input.subtotal,
-        tax: input.tax,
-        total: input.total,
+        subtotal,
+        tax,
+        total,
         paymentStatus: input.paymentStatus,
         paymentMethod: input.paymentMethod,
         notes: input.notes || null,
@@ -132,7 +221,7 @@ export class BillingService {
 
       inMemoryDb.bills.unshift(newBill);
 
-      const billItems: DbBillItem[] = input.items.map((item) => ({
+      const billItems: DbBillItem[] = items.map((item) => ({
         id: crypto.randomUUID(),
         billId,
         medicine: item.medicine,
@@ -149,7 +238,7 @@ export class BillingService {
           shopId,
           patientId: input.patientId,
           billId,
-          amount: input.total,
+          amount: total,
           type: LedgerType.CREDIT,
           description: `Credit for bill ${billNumber}`,
           createdAt: new Date(),
