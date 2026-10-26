@@ -121,8 +121,9 @@ api.interceptors.response.use(
           refreshToken,
         });
 
-        const newAccessToken = data.data.accessToken;
-        const newRefreshToken = data.data.refreshToken;
+        const tokens = data.data?.tokens || data.data;
+        const newAccessToken = tokens.accessToken;
+        const newRefreshToken = tokens.refreshToken;
 
         setAccessToken(newAccessToken);
         if (newRefreshToken) {

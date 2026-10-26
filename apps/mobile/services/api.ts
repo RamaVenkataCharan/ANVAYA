@@ -113,8 +113,9 @@ api.interceptors.response.use(
       });
 
       const data = response.data?.data;
-      const newAccessToken = data?.accessToken;
-      const newRefreshToken = data?.refreshToken;
+      const tokens = data?.tokens || data;
+      const newAccessToken = tokens?.accessToken;
+      const newRefreshToken = tokens?.refreshToken;
 
       if (!newAccessToken || !newRefreshToken) {
         throw new Error('Malformed token response from refresh endpoint');

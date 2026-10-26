@@ -47,7 +47,9 @@ export class AuthController {
       res.status(200).json({
         success: true,
         message: 'Tokens refreshed successfully',
-        data: tokens,
+        data: {
+          tokens,
+        },
         timestamp: new Date().toISOString(),
       });
     } catch (error) {

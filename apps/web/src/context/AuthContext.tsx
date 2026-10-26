@@ -51,7 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (response.data?.success && response.data?.data) {
-          const { accessToken, refreshToken } = response.data.data;
+          const tokens = response.data.data.tokens || response.data.data;
+          const { accessToken, refreshToken } = tokens;
           setAccessToken(accessToken);
           if (refreshToken) {
             setRefreshToken(refreshToken);
