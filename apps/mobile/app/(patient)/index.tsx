@@ -67,7 +67,7 @@ export default function PatientDashboard() {
         </View>
 
         {/* Quick Actions */}
-        <Text style={styles.sectionHeader}>Prescriptions & Wallet</Text>
+        <Text style={styles.sectionHeader}>Healthcare Services & Features</Text>
         <View style={styles.actionsGrid}>
           <TouchableOpacity
             style={styles.actionCard}
@@ -81,6 +81,70 @@ export default function PatientDashboard() {
               <Text style={styles.actionTitle}>Digital Prescription Wallet</Text>
               <Text style={styles.actionDesc}>
                 View active e-prescriptions, medications, and show dynamic QR tokens at pharmacies
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(patient)/appointments')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.actionIconContainer}>
+              <Text style={styles.actionIcon}>📅</Text>
+            </View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Doctor Consultations</Text>
+              <Text style={styles.actionDesc}>
+                Schedule visits with verified physicians and manage upcoming appointments
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(patient)/records')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.actionIconContainer}>
+              <Text style={styles.actionIcon}>📁</Text>
+            </View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Medical Vault & Bills</Text>
+              <Text style={styles.actionDesc}>
+                Upload lab reports, diagnostic scans, and view pharmacy invoices
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(patient)/shops')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.actionIconContainer}>
+              <Text style={styles.actionIcon}>🏥</Text>
+            </View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Pharmacy Directory</Text>
+              <Text style={styles.actionDesc}>
+                Find verified medical stores, check operating hours, call, or get directions
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(patient)/consent')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.actionIconContainer}>
+              <Text style={styles.actionIcon}>🛡️</Text>
+            </View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Clinical Consent Hub</Text>
+              <Text style={styles.actionDesc}>
+                Authorize or revoke access to your health documents with zero-trust privacy
               </Text>
             </View>
           </TouchableOpacity>

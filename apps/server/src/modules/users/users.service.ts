@@ -108,14 +108,18 @@ export class UsersService {
   /**
    * Returns list of verified doctors
    */
-  async getVerifiedDoctors(specialization?: string) {
+  async getVerifiedDoctors(search?: string) {
     if (isDbConnected()) {
       const where: any = {
         verificationStatus: VerificationStatus.APPROVED,
       };
 
-      if (specialization) {
-        where.specialization = { contains: specialization, mode: 'insensitive' };
+      if (search) {
+        where.OR = [
+          { specialization: { contains: search, mode: 'insensitive' } },
+          { clinicAddress: { contains: search, mode: 'insensitive' } },
+          { user: { name: { contains: search, mode: 'insensitive' } } },
+        ];
       }
 
       return prisma.doctor.findMany({
@@ -134,9 +138,16 @@ export class UsersService {
     } else {
       let docs = inMemoryDb.doctors.filter((d) => d.verificationStatus === VerificationStatus.APPROVED);
 
-      if (specialization) {
-        const specLower = specialization.toLowerCase();
-        docs = docs.filter((d) => d.specialization.toLowerCase().includes(specLower));
+      if (search) {
+        const sLower = search.toLowerCase();
+        docs = docs.filter((d) => {
+          const user = inMemoryDb.users.find((u) => u.id === d.userId);
+          return (
+            (d.specialization && d.specialization.toLowerCase().includes(sLower)) ||
+            (d.clinicAddress && d.clinicAddress.toLowerCase().includes(sLower)) ||
+            (user && user.name && user.name.toLowerCase().includes(sLower))
+          );
+        });
       }
 
       return docs.map((doc) => {

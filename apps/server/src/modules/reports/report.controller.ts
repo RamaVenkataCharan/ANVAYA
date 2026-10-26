@@ -92,13 +92,14 @@ export class ReportController {
   async getReportById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authReq = req as AuthRequest;
-      const { role, patientId, doctorId } = authReq.user;
+      const { role, patientId, doctorId, userId } = authReq.user;
       const { id } = req.params;
 
       const report = await reportService.getReportById(
         id,
         role === Role.PATIENT ? patientId : undefined,
-        role === Role.DOCTOR ? doctorId : undefined
+        role === Role.DOCTOR ? doctorId : undefined,
+        userId
       );
 
       res.status(200).json({
@@ -106,6 +107,94 @@ export class ReportController {
         data: report,
         timestamp: new Date().toISOString(),
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /reports/upload
+   * Multipart file upload (Patient only)
+   */
+  async uploadReportFile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const authReq = req as AuthRequest;
+      const { patientId, userId } = authReq.user;
+
+      if (!patientId) {
+        res.status(403).json({
+          success: false,
+          error: 'ForbiddenError',
+          message: 'Patient profile not found in token',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          error: 'BadRequestError',
+          message: 'File is required',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const report = await reportService.uploadReportFile(
+        patientId,
+        {
+          buffer: req.file.buffer,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+        },
+        {
+          title: req.body.title || req.file.originalname,
+          type: req.body.type || 'OTHER',
+          notes: req.body.notes,
+        },
+        userId
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Health report uploaded to your digital vault successfully',
+        data: report,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /reports/:id/file
+   * Authenticated file stream (Patient: own; Doctor: with consent)
+   */
+  async getReportFile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const authReq = req as AuthRequest;
+      const { role, patientId, doctorId, userId } = authReq.user;
+      const { id } = req.params;
+
+      const fileResult = await reportService.getReportFile(
+        id,
+        userId,
+        role === Role.PATIENT ? patientId : undefined,
+        role === Role.DOCTOR ? doctorId : undefined
+      );
+
+      res.setHeader('Content-Type', fileResult.mimetype);
+      if (fileResult.size) {
+        res.setHeader('Content-Length', fileResult.size);
+      }
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${encodeURIComponent(fileResult.report.title || 'report')}"`
+      );
+
+      fileResult.stream.pipe(res);
     } catch (error) {
       next(error);
     }

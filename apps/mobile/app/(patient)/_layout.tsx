@@ -54,11 +54,47 @@ export default function PatientLayout() {
         }}
       />
       <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Visits',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📅</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="wallet"
         options={{
           title: 'Wallet',
           tabBarIcon: ({ focused }) => (
             <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📱</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="records"
+        options={{
+          title: 'Records',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📁</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="shops"
+        options={{
+          title: 'Shops',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>🏥</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="consent"
+        options={{
+          title: 'Consent',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>🛡️</Text>
           ),
         }}
       />

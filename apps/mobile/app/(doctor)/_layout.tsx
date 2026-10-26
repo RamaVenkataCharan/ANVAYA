@@ -59,6 +59,15 @@ export default function DoctorLayout() {
         }}
       />
       <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Schedule',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>🩺</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="new-prescription"
         options={{
           title: 'New Rx',
@@ -73,6 +82,15 @@ export default function DoctorLayout() {
           title: 'Prescriptions',
           tabBarIcon: ({ focused }) => (
             <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📋</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="patients"
+        options={{
+          title: 'Patients',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>👥</Text>
           ),
         }}
       />

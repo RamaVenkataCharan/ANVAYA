@@ -19,10 +19,26 @@ export function createApp() {
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || origin.startsWith('http://localhost') || origin.startsWith('exp://')) {
+        // Mobile apps, curl, or same-origin requests send no origin header
+        if (!origin) return callback(null, true);
+
+        // Check if origin matches any configured allowed origin
+        if (config.allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
-        return callback(null, true);
+
+        // In development or test, permit local dev tools and mobile Expo
+        if (config.isDev || config.env === 'test') {
+          if (
+            origin.startsWith('http://localhost') ||
+            origin.startsWith('http://127.0.0.1') ||
+            origin.startsWith('exp://')
+          ) {
+            return callback(null, true);
+          }
+        }
+
+        return callback(new Error(`CORS policy violation: Origin ${origin} is not allowed.`));
       },
       credentials: true,
     })

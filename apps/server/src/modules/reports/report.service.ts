@@ -1,11 +1,41 @@
 import { ReportType, CreateReportInput } from '@anvaya/shared';
 import { prisma, isDbConnected } from '../../config/prisma';
 import { inMemoryDb, DbReport } from '../../db/inMemoryDb';
-import { NotFoundError, ForbiddenError } from '../../utils/errors';
+import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { recordAuditLog } from '../../middleware/audit';
+import { storageService, StorageFile } from '../../services/storage';
 import crypto from 'crypto';
+import path from 'path';
 
 export class ReportService {
+  /**
+   * Uploads a new health report via Storage Service (enforces PDF, JPG, PNG & size limit)
+   */
+  async uploadReportFile(
+    patientId: string,
+    file: StorageFile,
+    metadata: { title: string; type: ReportType; notes?: string },
+    patientUserId?: string
+  ) {
+    if (!file) {
+      throw new BadRequestError('No report file provided');
+    }
+
+    // Save through the Storage Service interface (enforces file type & size)
+    const stored = await storageService.save(file);
+
+    return this.createReport(
+      patientId,
+      {
+        title: metadata.title || file.originalname,
+        fileUrl: stored.fileUrl,
+        type: metadata.type || ReportType.OTHER,
+        notes: metadata.notes,
+      },
+      patientUserId
+    );
+  }
+
   /**
    * Uploads a new health report to the patient's digital vault
    */
@@ -67,6 +97,12 @@ export class ReportService {
     // Enforce consent check for doctors
     if (callerDoctorId) {
       await this.assertConsent(patientId, callerDoctorId);
+      recordAuditLog({
+        userId: callerId,
+        action: 'REPORT_VIEWED',
+        resource: 'REPORT',
+        metadata: { patientId, doctorId: callerDoctorId },
+      });
     }
 
     if (isDbConnected()) {
@@ -85,7 +121,9 @@ export class ReportService {
   /**
    * Returns a single report by ID (owner or consented doctor only)
    */
-  async getReportById(id: string, patientId?: string, callerDoctorId?: string) {
+  async getReportById(id: string, patientId?: string, callerDoctorId?: string, callerUserId?: string) {
+    let reportData: any;
+
     if (isDbConnected()) {
       const report = await prisma.report.findUnique({ where: { id } });
       if (!report) throw new NotFoundError('Report not found');
@@ -97,8 +135,7 @@ export class ReportService {
       if (callerDoctorId) {
         await this.assertConsent(report.patientId, callerDoctorId);
       }
-
-      return report;
+      reportData = report;
     } else {
       const report = inMemoryDb.reports.find((r) => r.id === id);
       if (!report) throw new NotFoundError('Report not found');
@@ -109,15 +146,64 @@ export class ReportService {
       if (callerDoctorId) {
         await this.assertConsent(report.patientId, callerDoctorId);
       }
-
-      return this.formatReport(report);
+      reportData = this.formatReport(report);
     }
+
+    recordAuditLog({
+      userId: callerUserId,
+      action: 'REPORT_VIEWED',
+      resource: 'REPORT',
+      resourceId: id,
+      metadata: { title: reportData.title },
+    });
+
+    return reportData;
+  }
+
+  /**
+   * Streams a report file securely through authenticated endpoint
+   */
+  async getReportFile(id: string, callerUserId?: string, patientId?: string, callerDoctorId?: string) {
+    let report: any;
+    if (isDbConnected()) {
+      report = await prisma.report.findUnique({ where: { id } });
+    } else {
+      report = inMemoryDb.reports.find((r) => r.id === id);
+    }
+
+    if (!report) throw new NotFoundError('Report not found');
+
+    if (patientId && report.patientId !== patientId) {
+      throw new ForbiddenError('You do not have access to this report file');
+    }
+    if (callerDoctorId) {
+      await this.assertConsent(report.patientId, callerDoctorId);
+    }
+
+    // Extract fileKey from fileUrl (e.g. /api/v1/reports/files/uuid.pdf -> uuid.pdf)
+    const fileKey = path.basename(report.fileUrl);
+    const streamResult = await storageService.getStream(fileKey);
+
+    recordAuditLog({
+      userId: callerUserId,
+      action: 'REPORT_VIEWED',
+      resource: 'REPORT',
+      resourceId: id,
+      metadata: { fileKey, title: report.title },
+    });
+
+    return {
+      ...streamResult,
+      report,
+    };
   }
 
   /**
    * Deletes a report from the vault (patient only)
    */
   async deleteReport(id: string, patientId: string, patientUserId?: string) {
+    let fileUrl: string | undefined;
+
     if (isDbConnected()) {
       const report = await prisma.report.findUnique({ where: { id } });
       if (!report) throw new NotFoundError('Report not found');
@@ -125,14 +211,8 @@ export class ReportService {
         throw new ForbiddenError('You can only delete your own reports');
       }
 
+      fileUrl = report.fileUrl;
       await prisma.report.delete({ where: { id } });
-
-      recordAuditLog({
-        userId: patientUserId,
-        action: 'REPORT_DELETED',
-        resource: 'REPORT',
-        resourceId: id,
-      });
     } else {
       const index = inMemoryDb.reports.findIndex((r) => r.id === id);
       if (index === -1) throw new NotFoundError('Report not found');
@@ -140,15 +220,22 @@ export class ReportService {
         throw new ForbiddenError('You can only delete your own reports');
       }
 
+      fileUrl = inMemoryDb.reports[index].fileUrl;
       inMemoryDb.reports.splice(index, 1);
-
-      recordAuditLog({
-        userId: patientUserId,
-        action: 'REPORT_DELETED',
-        resource: 'REPORT',
-        resourceId: id,
-      });
     }
+
+    // Delete underlying file from storage if stored locally
+    if (fileUrl) {
+      const fileKey = path.basename(fileUrl);
+      await storageService.delete(fileKey).catch(() => {});
+    }
+
+    recordAuditLog({
+      userId: patientUserId,
+      action: 'REPORT_DELETED',
+      resource: 'REPORT',
+      resourceId: id,
+    });
   }
 
   /**

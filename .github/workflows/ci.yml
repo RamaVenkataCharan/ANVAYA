@@ -1,0 +1,77 @@
+name: ANVAYA CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build, Typecheck & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: anvaya
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: "postgresql://postgres:postgrespassword@localhost:5432/anvaya?schema=public"
+      JWT_ACCESS_SECRET: "ci_jwt_access_secret_for_testing_purposes_only_32_chars"
+      JWT_REFRESH_SECRET: "ci_jwt_refresh_secret_for_testing_purposes_only_32_chars"
+      DEMO_PASSWORD: "Password123"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies across workspaces
+        run: npm ci
+
+      - name: Build shared library
+        run: npm --workspace=packages/shared run build
+
+      - name: Generate Prisma client
+        run: npm --workspace=apps/server run db:generate
+
+      - name: Typecheck all workspaces (tsc)
+        run: |
+          npx tsc --noEmit -p packages/shared/tsconfig.json
+          npx tsc --noEmit -p apps/server/tsconfig.json
+          npx tsc --noEmit -p apps/web/tsconfig.json
+          npx tsc --noEmit -p apps/mobile/tsconfig.json
+
+      - name: Build frontend and server packages
+        run: npm run build
+
+      - name: Deploy Prisma database migrations to Postgres
+        run: npm --workspace=apps/server run db:deploy
+
+      - name: Seed Postgres database with demo dataset
+        run: npm run seed
+
+      - name: Run server test suite (In-Memory Store)
+        run: npm --workspace=apps/server run test
+
+      - name: Run server test suite (Real PostgreSQL - TEST_DB=postgres)
+        run: npm --workspace=apps/server run test:postgres
+        env:
+          TEST_DB: postgres

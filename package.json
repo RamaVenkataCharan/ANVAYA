@@ -9,15 +9,22 @@
   ],
   "scripts": {
     "dev:server": "npm --workspace=apps/server run dev",
+    "dev:web": "npm --workspace=apps/web run dev",
     "dev:mobile": "npm --workspace=apps/mobile run start",
     "build:shared": "npm --workspace=packages/shared run build",
     "build:server": "npm --workspace=apps/server run build",
-    "build": "npm run build:shared && npm run build:server",
+    "build:web": "npm --workspace=apps/web run build",
+    "build": "npm run build:shared && npm run build:server && npm run build:web",
     "db:generate": "npm --workspace=apps/server run db:generate",
     "db:migrate": "npm --workspace=apps/server run db:migrate",
+    "db:deploy": "npm --workspace=apps/server run db:deploy",
     "db:push": "npm --workspace=apps/server run db:push",
     "db:seed": "npm --workspace=apps/server run db:seed",
-    "db:studio": "npm --workspace=apps/server run db:studio"
+    "db:studio": "npm --workspace=apps/server run db:studio",
+    "seed": "npm --workspace=apps/server run seed",
+    "test": "npm --workspace=apps/server run test",
+    "test:postgres": "npm --workspace=apps/server run test:postgres",
+    "typecheck": "npm --workspace=packages/shared run build && npx tsc --noEmit -p packages/shared/tsconfig.json && npx tsc --noEmit -p apps/server/tsconfig.json && npx tsc --noEmit -p apps/web/tsconfig.json && npx tsc --noEmit -p apps/mobile/tsconfig.json"
   },
   "keywords": [
     "healthcare",

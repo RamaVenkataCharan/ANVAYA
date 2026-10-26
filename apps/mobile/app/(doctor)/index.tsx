@@ -107,6 +107,38 @@ export default function DoctorDashboard() {
               </Text>
             </View>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(doctor)/appointments')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.actionIconContainer}>
+              <Text style={styles.actionIcon}>🩺</Text>
+            </View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>Appointment Schedule</Text>
+              <Text style={styles.actionDesc}>
+                Manage patient consultation bookings (confirm, complete, or cancel)
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(doctor)/patients')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.actionIconContainer}>
+              <Text style={styles.actionIcon}>👥</Text>
+            </View>
+            <View style={styles.actionContent}>
+              <Text style={styles.actionTitle}>My Consenting Patients</Text>
+              <Text style={styles.actionDesc}>
+                Access health vaults and diagnostic reports shared with your clinical practice
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

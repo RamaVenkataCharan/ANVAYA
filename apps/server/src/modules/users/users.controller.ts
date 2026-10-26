@@ -6,7 +6,7 @@ import { recordAuditLog } from '../../middleware/audit';
 export class UsersController {
   async getShops(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const search = req.query.search as string | undefined;
+      const search = (req.query.q || req.query.search) as string | undefined;
       const shops = await usersService.getVerifiedShops(search);
 
       res.status(200).json({
@@ -36,8 +36,8 @@ export class UsersController {
 
   async getDoctors(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const specialization = req.query.specialization as string | undefined;
-      const doctors = await usersService.getVerifiedDoctors(specialization);
+      const search = (req.query.q || req.query.search || req.query.specialization) as string | undefined;
+      const doctors = await usersService.getVerifiedDoctors(search);
 
       res.status(200).json({
         success: true,

@@ -14,13 +14,41 @@
  * pass Zod's strict UUID validation.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
+import bcrypt from 'bcryptjs';
+import { Role } from '@prisma/client';
 import { createApp } from '../app';
 import { processDueRefillReminders } from '../jobs/refillReminders';
+import { connectDatabase, disconnectDatabase, prisma } from '../config/prisma';
 
 // Lift rate limiters and silence HTTP logs during tests
 process.env.NODE_ENV = 'test';
+
+beforeAll(async () => {
+  if (process.env.TEST_DB === 'postgres') {
+    await connectDatabase();
+    const passwordHash = await bcrypt.hash('Password123', 10);
+    await prisma.user.upsert({
+      where: { email: 'admin@anvaya.health' },
+      update: { passwordHash, isActive: true },
+      create: {
+        name: 'System Administrator',
+        email: 'admin@anvaya.health',
+        phone: '+919999900001',
+        passwordHash,
+        role: Role.ADMIN,
+        isActive: true,
+      },
+    });
+  }
+});
+
+afterAll(async () => {
+  if (process.env.TEST_DB === 'postgres') {
+    await disconnectDatabase();
+  }
+});
 
 const app = createApp();
 const API = '/api/v1';
@@ -433,6 +461,103 @@ describe('Step 7 — Push Token & Refill Reminders Job', () => {
     expect(res.status).toBe(200);
     const found = (res.body.data as any[]).find((r) => r.id === reminderId);
     expect(found).toBeDefined();
+  });
+});
+
+// ── Step 8: Patient Records & Doctor Consent Flow ────────────────────────
+describe('Step 8 — Patient Records & Consent Gate', () => {
+  let reportId = '';
+
+  it('Patient uploads a health report to their vault', async () => {
+    const res = await request(app)
+      .post(`${API}/reports`)
+      .set('Authorization', `Bearer ${patientToken}`)
+      .send({
+        title: 'Blood Test CBC',
+        fileUrl: '/uploads/reports/cbc_test.pdf',
+        type: 'LAB_REPORT',
+        notes: 'Annual routine health checkup',
+      });
+
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body.data.id).toBeTruthy();
+    expect(res.body.data.title).toBe('Blood Test CBC');
+    reportId = res.body.data.id;
+  });
+
+  it('Doctor CANNOT read patient reports without consent (403 Forbidden)', async () => {
+    const listRes = await request(app)
+      .get(`${API}/reports?patientId=${patientId}`)
+      .set('Authorization', `Bearer ${doctorToken}`);
+
+    expect(listRes.status).toBe(403);
+    expect(listRes.body.error).toBe('ForbiddenError');
+
+    const getRes = await request(app)
+      .get(`${API}/reports/${reportId}`)
+      .set('Authorization', `Bearer ${doctorToken}`);
+
+    expect(getRes.status).toBe(403);
+    expect(getRes.body.error).toBe('ForbiddenError');
+  });
+
+  it('Patient grants consent to Doctor', async () => {
+    const res = await request(app)
+      .post(`${API}/consent/grant`)
+      .set('Authorization', `Bearer ${patientToken}`)
+      .send({
+        doctorId: doctorProfileId,
+        notes: 'Access for hypertension review',
+      });
+
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body.data.isActive).toBe(true);
+  });
+
+  it('Doctor CAN read patient reports after consent granted (200 OK)', async () => {
+    const listRes = await request(app)
+      .get(`${API}/reports?patientId=${patientId}`)
+      .set('Authorization', `Bearer ${doctorToken}`);
+
+    expect(listRes.status, JSON.stringify(listRes.body)).toBe(200);
+    const found = (listRes.body.data as any[]).find((r) => r.id === reportId);
+    expect(found).toBeDefined();
+    expect(found.title).toBe('Blood Test CBC');
+
+    const getRes = await request(app)
+      .get(`${API}/reports/${reportId}`)
+      .set('Authorization', `Bearer ${doctorToken}`);
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.data.id).toBe(reportId);
+  });
+
+  it('Patient revokes consent from Doctor', async () => {
+    const res = await request(app)
+      .post(`${API}/consent/revoke`)
+      .set('Authorization', `Bearer ${patientToken}`)
+      .send({
+        doctorId: doctorProfileId,
+      });
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.data.isActive).toBe(false);
+  });
+
+  it('Doctor CANNOT read patient reports after consent revoked (403 Forbidden)', async () => {
+    const listRes = await request(app)
+      .get(`${API}/reports?patientId=${patientId}`)
+      .set('Authorization', `Bearer ${doctorToken}`);
+
+    expect(listRes.status).toBe(403);
+    expect(listRes.body.error).toBe('ForbiddenError');
+
+    const getRes = await request(app)
+      .get(`${API}/reports/${reportId}`)
+      .set('Authorization', `Bearer ${doctorToken}`);
+
+    expect(getRes.status).toBe(403);
+    expect(getRes.body.error).toBe('ForbiddenError');
   });
 });
 
