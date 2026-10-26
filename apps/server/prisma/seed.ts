@@ -12,7 +12,15 @@ import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
+export function verifySeedEnvironment(): void {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PROD_SEED !== 'true') {
+    throw new Error('Database seeding is strictly blocked in production environment. To force, set ALLOW_PROD_SEED=true.');
+  }
+}
+
 async function main() {
+  verifySeedEnvironment();
+
   console.log('\n🌱 =========================================================');
   console.log('   Seeding ANVAYA Database with Production-Ready Demo Data');
   console.log('=========================================================\n');
@@ -699,11 +707,13 @@ async function main() {
   console.log('================================================================================================\n');
 }
 
-main()
-  .catch((e) => {
-    console.error('❌ Error during seeding:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (!process.env.VITEST && process.env.NODE_ENV !== 'test') {
+  main()
+    .catch((e) => {
+      console.error('❌ Error during seeding:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
