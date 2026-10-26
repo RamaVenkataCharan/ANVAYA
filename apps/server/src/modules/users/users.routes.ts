@@ -13,12 +13,32 @@ router.get('/shops/:id', (req, res, next) => usersController.getShopById(req, re
 router.get('/doctors', (req, res, next) => usersController.getDoctors(req, res, next));
 router.get('/doctors/:id', (req, res, next) => usersController.getDoctorById(req, res, next));
 
-// Authenticated patient lookup (for verified doctors and shops, returns only id, name and age)
+import rateLimit from 'express-rate-limit';
+
+const patientLookupLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 10,
+  keyGenerator: (req) => {
+    const user = (req as any).user;
+    return user?.userId || req.ip || 'anonymous';
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'TooManyRequests',
+    message: 'Rate limit exceeded: Too many patient lookup requests. Please try again in 10 minutes.',
+    timestamp: new Date().toISOString(),
+  },
+});
+
+// Authenticated patient lookup (strictly for verified doctors, returns only id, name and age)
 router.get(
   '/patients/lookup',
   authenticateJwt,
-  requireRole(Role.DOCTOR, Role.SHOP),
+  requireRole(Role.DOCTOR),
   requireVerified,
+  patientLookupLimiter,
   (req, res, next) => usersController.lookupPatient(req, res, next)
 );
 

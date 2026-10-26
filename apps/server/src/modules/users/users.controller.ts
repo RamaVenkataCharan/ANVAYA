@@ -86,23 +86,23 @@ export class UsersController {
         throw new BadRequestError('Phone number query parameter (?phone=) is required');
       }
 
-      const patient = await usersService.lookupPatientByPhone(phone);
-      if (!patient) {
-        throw new NotFoundError('No patient found with this phone number');
-      }
+      const cleanPhone = phone.trim();
+      const patient = await usersService.lookupPatientByPhone(cleanPhone);
 
+      // Record audit log for all lookups (found or not)
       recordAuditLog({
         userId: req.user?.userId,
         action: 'PATIENT_LOOKUP',
         resource: 'PATIENT',
-        resourceId: patient.id,
+        resourceId: patient?.id || 'NOT_FOUND',
         ipAddress: req.ip,
-        metadata: { phone: phone.trim() },
+        metadata: { phone: cleanPhone, found: !!patient },
       });
 
+      // Indistinguishable response status (HTTP 200) to prevent phone enumeration
       res.status(200).json({
         success: true,
-        data: patient,
+        data: patient || null,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
