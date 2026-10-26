@@ -6,8 +6,8 @@ import { Role } from '@anvaya/shared';
 import { ShieldCheck, Lock, Mail, ArrowRight, Loader2, KeyRound, AlertCircle, ArrowLeft } from 'lucide-react';
 
 export const AdminLoginPage: React.FC = () => {
-  const [identifier, setIdentifier] = useState('admin@anvaya.health');
-  const [password, setPassword] = useState('Password123');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -47,12 +47,6 @@ export const AdminLoginPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFillDemoAdmin = () => {
-    setIdentifier('admin@anvaya.health');
-    setPassword('Password123');
-    setErrorMsg(null);
   };
 
   return (
@@ -109,7 +103,7 @@ export const AdminLoginPage: React.FC = () => {
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="admin@anvaya.health"
+                  placeholder="admin@organization.health"
                   className="block w-full pl-10 pr-3.5 py-2.5 text-sm rounded-xl bg-slate-900/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -155,19 +149,25 @@ export const AdminLoginPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Autofill */}
-          <div className="mt-6 pt-6 border-t border-slate-700/60">
-            <button
-              type="button"
-              onClick={handleFillDemoAdmin}
-              className="w-full py-2 px-3 text-xs font-medium text-slate-400 hover:text-emerald-400 hover:bg-slate-700/30 rounded-xl transition-colors border border-dashed border-slate-700 flex items-center justify-center gap-2"
-            >
-              <span>Auto-fill Demo Admin Credentials</span>
-              <span className="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded">
-                admin@anvaya.health
-              </span>
-            </button>
-          </div>
+          {/* Quick Demo Credentials Autofill (Development Only - Excluded from Production Builds) */}
+          {import.meta.env.DEV && (
+            <div className="mt-6 pt-6 border-t border-slate-700/60">
+              <button
+                type="button"
+                onClick={() => {
+                  setIdentifier('admin@anvaya.health');
+                  setPassword('Password123');
+                  setErrorMsg(null);
+                }}
+                className="w-full py-2 px-3 text-xs font-medium text-slate-400 hover:text-emerald-400 hover:bg-slate-700/30 rounded-xl transition-colors border border-dashed border-slate-700 flex items-center justify-center gap-2"
+              >
+                <span>Auto-fill Demo Admin Credentials</span>
+                <span className="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded">
+                  admin@anvaya.health
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
