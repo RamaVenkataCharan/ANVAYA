@@ -335,6 +335,15 @@ export class AuthService {
         throw new UnauthorizedError('Invalid or expired refresh token');
       }
 
+      const userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { isActive: true },
+      });
+
+      if (!userRecord || !userRecord.isActive) {
+        throw new UnauthorizedError('Your account has been deactivated. Please contact support.');
+      }
+
       await prisma.refreshToken.update({
         where: { id: tokenRecord.id },
         data: { revoked: true },
@@ -344,6 +353,12 @@ export class AuthService {
       if (!tokenRecord || tokenRecord.revoked || tokenRecord.expiresAt < new Date()) {
         throw new UnauthorizedError('Invalid or expired refresh token');
       }
+
+      const userRecord = inMemoryDb.users.find((u) => u.id === userId);
+      if (!userRecord || !userRecord.isActive) {
+        throw new UnauthorizedError('Your account has been deactivated. Please contact support.');
+      }
+
       tokenRecord.revoked = true;
     }
 

@@ -553,6 +553,13 @@ export class AdminService {
         },
       });
 
+      if (!isActive) {
+        await prisma.refreshToken.updateMany({
+          where: { userId, revoked: false },
+          data: { revoked: true },
+        });
+      }
+
       recordAuditLog({
         userId: adminUserId,
         action: isActive ? 'USER_REACTIVATED' : 'USER_SUSPENDED',
@@ -573,6 +580,14 @@ export class AdminService {
 
       user.isActive = isActive;
       user.updatedAt = new Date();
+
+      if (!isActive) {
+        inMemoryDb.refreshTokens
+          .filter((t) => t.userId === userId)
+          .forEach((t) => {
+            t.revoked = true;
+          });
+      }
 
       recordAuditLog({
         userId: adminUserId,
