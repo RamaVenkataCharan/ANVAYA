@@ -10,6 +10,11 @@ export class AppointmentService {
    * Books a new appointment for a patient with a verified doctor
    */
   async createAppointment(patientId: string, input: CreateAppointmentInput, patientUserId?: string) {
+    const apptDate = new Date(input.dateTime);
+    if (isNaN(apptDate.getTime()) || apptDate.getTime() <= Date.now()) {
+      throw new BadRequestError('Appointment date and time must be in the future');
+    }
+
     if (isDbConnected()) {
       // Verify the doctor exists and is approved
       const doctor = await prisma.doctor.findUnique({ where: { id: input.doctorId } });
@@ -183,11 +188,14 @@ export class AppointmentService {
     const doctorAllowed = [AppointmentStatus.CONFIRMED, AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED];
     const patientAllowed = [AppointmentStatus.CANCELLED];
 
+    if (callerRole === Role.PATIENT && !patientAllowed.includes(input.status)) {
+      throw new ForbiddenError('Patients are only permitted to cancel appointments');
+    }
     if (callerRole === Role.DOCTOR && !doctorAllowed.includes(input.status)) {
       throw new BadRequestError(`Doctors can only set status to: ${doctorAllowed.join(', ')}`);
     }
-    if (callerRole === Role.PATIENT && !patientAllowed.includes(input.status)) {
-      throw new BadRequestError('Patients can only cancel appointments');
+    if (callerRole !== Role.DOCTOR && callerRole !== Role.PATIENT) {
+      throw new ForbiddenError('Only assigned doctors or patients can update appointment status');
     }
 
     if (isDbConnected()) {
