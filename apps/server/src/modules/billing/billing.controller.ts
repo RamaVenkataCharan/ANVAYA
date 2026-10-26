@@ -39,14 +39,45 @@ export class BillingController {
 
   /**
    * GET /billing/bills
-   * List bills scoped to shop or patient
+   * List bills scoped to shop
    */
   async getBills(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authReq = req as AuthRequest;
-      const { role, shopId, patientId } = authReq.user;
+      const { role, shopId } = authReq.user;
 
-      const bills = await billingService.getBills({ role, shopId, patientId });
+      const bills = await billingService.getBills({ role, shopId });
+
+      res.status(200).json({
+        success: true,
+        data: bills,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /billing/my-bills
+   * List bills for authenticated patient
+   */
+  async getMyBills(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const authReq = req as AuthRequest;
+      const { patientId } = authReq.user;
+
+      if (!patientId) {
+        res.status(403).json({
+          success: false,
+          error: 'ForbiddenError',
+          message: 'Patient profile not found in token',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const bills = await billingService.getBills({ role: Role.PATIENT, patientId });
 
       res.status(200).json({
         success: true,

@@ -106,7 +106,7 @@ export default function PatientRecordsScreen() {
   } = useQuery<BillItem[]>({
     queryKey: ['bills', 'patient'],
     queryFn: async () => {
-      const res = await api.get('/billing/bills');
+      const res = await api.get('/billing/my-bills');
       return res.data?.data || [];
     },
   });

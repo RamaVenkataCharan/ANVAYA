@@ -28,12 +28,22 @@ router.post(
 
 /**
  * GET /billing/bills
- * List bills (Shop sees own bills; Patient sees own receipts)
+ * List bills for the shop (Shop only)
  */
 router.get(
   '/bills',
-  requireRole(Role.SHOP, Role.PATIENT),
+  requireRole(Role.SHOP),
   (req, res, next) => billingController.getBills(req, res, next)
+);
+
+/**
+ * GET /billing/my-bills
+ * List bills for authenticated patient (Patient only)
+ */
+router.get(
+  '/my-bills',
+  requireRole(Role.PATIENT),
+  (req, res, next) => billingController.getMyBills(req, res, next)
 );
 
 /**
