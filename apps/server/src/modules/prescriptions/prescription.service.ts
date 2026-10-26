@@ -299,10 +299,41 @@ export class PrescriptionService {
         },
       });
 
+      const minimizedPrescription = {
+        id: prescription.id,
+        code: prescription.code,
+        status: prescription.status,
+        patientId: prescription.patientId,
+        doctorId: prescription.doctorId,
+        patient: prescription.patient
+          ? {
+              id: prescription.patient.id,
+              user: { name: prescription.patient.user?.name || '' },
+            }
+          : null,
+        doctor: prescription.doctor
+          ? {
+              id: prescription.doctor.id,
+              user: { name: prescription.doctor.user?.name || '' },
+            }
+          : null,
+        items: prescription.items.map((i) => ({
+          id: i.id,
+          medicine: i.medicine,
+          dosage: i.dosage,
+          frequency: i.frequency,
+          duration: i.duration,
+          instructions: i.instructions,
+          quantity: i.quantity,
+        })),
+        createdAt: prescription.createdAt,
+        validUntil: (prescription as any).validUntil || null,
+      };
+
       return {
         isValid: prescription.status === PrescriptionStatus.ISSUED,
         status: prescription.status,
-        prescription,
+        prescription: minimizedPrescription,
       };
     } else {
       const pres = inMemoryDb.prescriptions.find(
@@ -329,10 +360,41 @@ export class PrescriptionService {
         },
       });
 
+      const minimizedPrescription = {
+        id: pres.id,
+        code: pres.code,
+        status: pres.status,
+        patientId: pres.patientId,
+        doctorId: pres.doctorId,
+        patient: formatted.patient
+          ? {
+              id: formatted.patient.id,
+              user: { name: formatted.patient.user?.name || '' },
+            }
+          : null,
+        doctor: formatted.doctor
+          ? {
+              id: formatted.doctor.id,
+              user: { name: formatted.doctor.user?.name || '' },
+            }
+          : null,
+        items: formatted.items.map((i) => ({
+          id: i.id,
+          medicine: i.medicine,
+          dosage: i.dosage,
+          frequency: i.frequency,
+          duration: i.duration,
+          instructions: i.instructions,
+          quantity: i.quantity,
+        })),
+        createdAt: pres.createdAt,
+        validUntil: (pres as any).validUntil || null,
+      };
+
       return {
         isValid: pres.status === PrescriptionStatus.ISSUED,
         status: pres.status,
-        prescription: formatted,
+        prescription: minimizedPrescription,
       };
     }
   }

@@ -352,11 +352,6 @@ export default function ScanPrescriptionScreen() {
                 </Text>
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Diagnosis</Text>
-                <Text style={styles.infoValue}>{result.prescription.diagnosis}</Text>
-              </View>
-
               {/* Medications List */}
               <Text style={styles.medicationsTitle}>
                 Medications to Dispense ({result.prescription.items?.length || 0}):

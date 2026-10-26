@@ -241,7 +241,7 @@ describe('Step 2 — Patient wallet', () => {
 
 // ── Step 3: Shop verifies the prescription ────────────────────────────────
 describe('Step 3 — Shop verifies', () => {
-  it('POST /prescriptions/verify with human-readable code → isValid=true', async () => {
+  it('POST /prescriptions/verify with human-readable code → isValid=true and minimizes data (no diagnosis/notes)', async () => {
     const res = await request(app)
       .post(`${API}/prescriptions/verify`)
       .set('Authorization', `Bearer ${shopToken}`)
@@ -250,6 +250,13 @@ describe('Step 3 — Shop verifies', () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     expect(res.body.data.isValid).toBe(true);
     expect(res.body.data.status).toBe('ISSUED');
+
+    // Data minimization checks: shops must NOT receive diagnosis or clinical notes
+    expect(res.body.data.prescription.diagnosis).toBeUndefined();
+    expect(res.body.data.prescription.notes).toBeUndefined();
+    expect(res.body.data.prescription.patient?.user?.name).toBeTruthy();
+    expect(res.body.data.prescription.doctor?.user?.name).toBeTruthy();
+    expect(Array.isArray(res.body.data.prescription.items)).toBe(true);
   });
 
   it('POST /prescriptions/verify with QR token → isValid=true', async () => {
@@ -260,6 +267,8 @@ describe('Step 3 — Shop verifies', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.isValid).toBe(true);
+    expect(res.body.data.prescription.diagnosis).toBeUndefined();
+    expect(res.body.data.prescription.notes).toBeUndefined();
   });
 });
 
