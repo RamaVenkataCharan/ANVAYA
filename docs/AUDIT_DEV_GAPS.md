@@ -263,3 +263,50 @@ An independent engineering audit was conducted across the ANVAYA paperless healt
 
 ---
 
+## 3. Disagreements with Earlier QA Reports
+
+An exhaustive comparison was performed between the assertions in [`docs/QA_REPORT.md`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/docs/QA_REPORT.md) and the findings of this independent audit.
+
+| Item | Earlier QA Report Claim | Independent Audit Reality | Verdict / Severity |
+|---|---|---|---|
+| **PostgreSQL Test Suite** | "Server Automated Test Suite: 122 passed out of 122 tests (100% pass rate)" implies comprehensive validation. | All 122 tests executed exclusively against in-memory JavaScript arrays. Running `TEST_DB=postgres` fails fast with 11 failing suites because no database server is running on `localhost:5432`. | **DISAGREEMENT (CRITICAL)**. Production database integration has 0% automated test verification. |
+| **Mobile Health Report Preview** | Claimed all mobile clinical features functional and verified. | Tapping a health report on mobile calls `Linking.openURL` without auth headers, immediately returning HTTP 401 Unauthorized in the user's browser. | **DISAGREEMENT (HIGH)**. Core patient record retrieval is non-functional on mobile. |
+| **TypeScript Strictness** | "0 errors across all 4 workspaces (`@anvaya/shared`, `apps/server`, `apps/web`, `apps/mobile`)." | `apps/mobile/tsconfig.json` has `strict: false`, suppressing strict null checks, unchecked index accesses, and implicit any types across 16,000+ lines. | **DISAGREEMENT (MEDIUM)**. Claim of universal type safety masked loose mobile compiler settings. |
+| **Reverse Proxy Rate Limiting** | "All rate limiters verified." | Rate limiters were tested only via direct local Supertest calls. `app.get('trust proxy')` is disabled in `app.ts`, which collapses all clients to the proxy IP in real deployments. | **DISAGREEMENT (HIGH)**. Real-world reverse proxy deployment causes DoS to legitimate clients. |
+| **Web Application Scope** | PRD and QA documents describe a complete paperless healthcare system. | The web app (`apps/web`) is strictly an Admin verification portal and landing page. Clinical Doctor, Pharmacy, and Patient portals do not exist on the web. | **CLARIFICATION (MEDIUM)**. Omission of clinical web interfaces should be explicitly documented. |
+
+---
+
+## 4. Feature Completeness Matrix
+
+This matrix evaluates feature coverage against the specifications in [`docs/PRD.md`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/docs/PRD.md).
+
+| Persona | Feature / Workflow Requirement | Server API Status | Web Portal Status | Mobile App Status | Completeness Rating |
+|---|---|---|---|---|:---:|
+| **Doctor** | Registration with Medical Council Reg No. | ✅ `POST /auth/register` | ❌ Not Implemented | ✅ `app/(auth)/register.tsx` | **80%** (Mobile only) |
+| **Doctor** | Pending Verification Lockdown Screen | ✅ Guard enforced | ❌ Not Implemented | ✅ `pending-verification.tsx` | **80%** (Mobile only) |
+| **Doctor** | Appointment Queue & Status Transitions | ✅ `GET/PATCH /appointments` | ❌ Not Implemented | ✅ `app/(doctor)/appointments.tsx`| **80%** (Mobile only) |
+| **Doctor** | E-Prescription Generator with Medicines | ✅ `POST /prescriptions` | ❌ Not Implemented | ✅ `new-prescription.tsx` | **80%** (Mobile only) |
+| **Doctor** | Cryptographic QR & Human Code Issuance | ✅ SHA-256 + Code gen | ❌ Not Implemented | ✅ Integrated in issuance | **90%** (Full mobile) |
+| **Doctor** | Review Patient Reports with Consent | ✅ `GET /reports?patientId=`| ❌ Not Implemented | ⚠️ List only; no viewer | **60%** (Viewer gap) |
+| **Doctor** | Prescription Amendment / Voiding | ❌ Cancel only | ❌ Not Implemented | ❌ Cancel only | **30%** (Functional gap)|
+| **Pharmacy** | Registration with State Drug License | ✅ `POST /auth/register` | ❌ Not Implemented | ✅ `app/(auth)/register.tsx` | **80%** (Mobile only) |
+| **Pharmacy** | Verification Workflow & Guarding | ✅ Guard enforced | ❌ Not Implemented | ✅ `pending-verification.tsx` | **80%** (Mobile only) |
+| **Pharmacy** | Prescription QR Scan & Dispensing | ✅ `POST /prescriptions/dispense`| ❌ Not Implemented | ✅ `scan-prescription.tsx` | **90%** (Full mobile) |
+| **Pharmacy** | Digital Invoicing (UPI, Cash, Khata) | ✅ `POST /billing/bills` | ❌ Not Implemented | ✅ `billing.tsx` & `invoices.tsx`| **90%** (Full mobile) |
+| **Pharmacy** | Khata (Credit Ledger) Reconciliations | ✅ `GET/POST /billing/ledger`| ❌ Not Implemented | ✅ `ledger.tsx` | **90%** (Full mobile) |
+| **Pharmacy** | Refill Reminder Notifications | ✅ `refillReminders.ts` | ❌ Not Implemented | ✅ `refill-reminders.tsx` | **85%** (Cron job) |
+| **Pharmacy** | Inventory & Stock Catalog Tracking | ❌ Free-text medicines | ❌ Not Implemented | ❌ Free-text inputs | **20%** (Missing feature)|
+| **Patient** | Instant Onboarding & Profile Setup | ✅ `POST /auth/register` | ❌ Not Implemented | ✅ `app/(auth)/register.tsx` | **80%** (Mobile only) |
+| **Patient** | Prescription Wallet & QR Presentation | ✅ `GET /prescriptions` | ❌ Not Implemented | ✅ `wallet.tsx` & `[id].tsx` | **90%** (Full mobile) |
+| **Patient** | Appointment Booking with Verified Doctors | ✅ `POST /appointments` | ❌ Not Implemented | ✅ `appointments.tsx` | **70%** (No slot logic) |
+| **Patient** | Pharmacy Directory & Operating Hours | ✅ `GET /shops` | ❌ Not Implemented | ✅ `shops.tsx` | **90%** (Full mobile) |
+| **Patient** | Digital Health Vault (Lab / Discharge) | ✅ `POST /reports` | ❌ Not Implemented | ⚠️ Upload works; View 401 | **50%** (View broken) |
+| **Patient** | Granular Doctor Consent Management | ✅ `GET/POST /consent` | ❌ Not Implemented | ✅ `consent.tsx` | **90%** (Full mobile) |
+| **Admin** | Review Pending Doctors & Pharmacies | ✅ `GET /admin/pending-verifications`| ✅ `AdminVerificationsPage.tsx`| ❌ Not intended | **100%** (Full Web) |
+| **Admin** | Provider Approval / Rejection with Reason | ✅ `POST /admin/verify/:role/:id`| ✅ Verified with modal | ❌ Not intended | **100%** (Full Web) |
+| **Admin** | User Suspension & Token Invalidation | ✅ `POST /admin/users/:id/suspend`| ✅ `AdminUsersPage.tsx` | ❌ Not intended | **100%** (Full Web) |
+| **Admin** | System Audit Log Inspection | ✅ `GET /admin/audit-logs` | ✅ `AdminAuditPage.tsx` | ❌ Not intended | **100%** (Full Web) |
+
+---
+
