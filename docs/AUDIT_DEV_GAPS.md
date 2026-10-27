@@ -310,3 +310,59 @@ This matrix evaluates feature coverage against the specifications in [`docs/PRD.
 
 ---
 
+## 5. In-Memory versus PostgreSQL Engine Differences
+
+| Architectural Dimension | In-Memory Engine (`inMemoryDb.ts`) | Production PostgreSQL Engine (`prisma/schema.prisma`) | Production Risk / Impact |
+|---|---|---|---|
+| **Currency Arithmetic** | JavaScript `number` (IEEE-754 binary floating point). Rounding converted via `Math.round(val * 100)`. | PostgreSQL `Decimal(10, 2)`. Returned via Prisma as `Prisma.Decimal` instances. | Client apps expecting primitive numbers may encounter serialization discrepancies or NaN when interacting with Prisma Decimal objects. |
+| **Bill Number Generation** | Sequential format: `INV-${year}-${inMemoryDb.bills.length + 1}` (`INV-2026-0001`). | Random hex format: `INV-${year}-${randomBytes(3).hex}` (`INV-2026-F3A10C`). | In-memory sequence resets on server restart; in Postgres, collisions could occur if random bytes are too short. |
+| **Relational Integrity & Cascade Deletes** | No foreign key checking. Deleting a User or Doctor leaves dangling references in appointments and prescriptions. | Strict foreign keys: `onDelete: Restrict` on clinical records (Doctor, Patient), `Cascade` on items and tokens. | In-memory tests cannot detect foreign key constraint violations that occur in PostgreSQL. |
+| **Transaction Atomicity** | Non-atomic. If an error occurs midway through creating bill items, the bill remains in `inMemoryDb.bills`. | Atomic transactions using `prisma.$transaction(async (tx) => ...)`. | Failed operations in in-memory tests do not rollback state. |
+| **Persistence Across Restarts** | Volatile RAM. All state is reset to pre-seeded defaults upon Node.js process termination. | Persistent storage on disk or Cloud SQL volume. | Refresh token revocations and newly created records disappear on restart in in-memory mode. |
+| **Concurrency & Double-Dispense** | Synchronous JavaScript event loop execution prevents race conditions between check and write. | Multi-connection database pool requires atomic conditional updates (`updateMany({ where: { id, status: ISSUED } })`). | A clustered Node.js backend running in-memory would allow double dispensing across nodes. |
+
+---
+
+## 6. Real PostgreSQL Server Suite Execution Log
+
+To verify the test suite against a real database, the server test suite was executed with `TEST_DB=postgres` and a throwaway `DATABASE_URL` (`postgresql://postgres:postgrespassword@localhost:5432/anvaya_throwaway?schema=public`).
+
+### Actual Verbatim Terminal Output
+```
+> @anvaya/server@1.0.0 test:postgres
+> cross-env TEST_DB=postgres vitest run
+
+
+ RUN  v5.0.5 C:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server
+
+ ❯ src/tests/admin-verification.test.ts (0 test)
+ ❯ src/tests/ownership-matrix.test.ts (0 test)
+ ❯ src/tests/appointment-rules.test.ts (0 test)
+ ❯ src/tests/patient-lookup.test.ts (0 test)
+ ❯ src/tests/admin-reject-reason.test.ts (0 test)
+ ❯ src/tests/validation-limits.test.ts (0 test)
+ ❯ src/tests/prescription-loop.test.ts (0 test)
+ ❯ src/tests/billing-access.test.ts (0 test)
+ ❯ src/tests/refresh-contract.test.ts (0 test)
+ ❯ src/tests/suspension-revocation.test.ts (0 test)
+ ❯ src/tests/financial-integrity.test.ts (0 test)
+ ✓ src/tests/seed-guard.test.ts (3 tests) 7ms
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: {
+  "message": "PostgreSQL test connection failed: Can't reach database server at localhost:5432",
+}
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ Test Files  11 failed | 1 passed (12)
+      Tests  3 passed | 119 skipped (122)
+   Start at  15:48:12
+   Duration  2.41s (transform 380ms, setup 0ms, collect 1.95s, tests 7ms, environment 0ms, run 7ms)
+```
+
+### Audit Status: **BLOCKED**
+- **Reason:** No PostgreSQL instance is running on the Windows host (`localhost:5432`), and Docker is not installed on this machine.
+- **Fail-Fast Verification:** The fail-fast safety mechanism implemented in [`apps/server/src/config/prisma.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/config/prisma.ts) functioned as designed: when `TEST_DB=postgres` is set, the server strictly refuses to fall back to in-memory mocks, aborting 11 suites immediately.
+
+---
+
