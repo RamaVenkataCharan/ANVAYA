@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PrescriptionModel, PrescriptionStatus } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { StatusBadge, Button } from '../../components/ui';
 
 interface PatientRefillItem {
   id?: string;
@@ -60,36 +61,6 @@ export default function PatientWalletScreen() {
     },
   });
 
-  const renderStatusBadge = (status: PrescriptionStatus) => {
-    let badgeBg = Colors.status.warningBackground;
-    let badgeBorder = Colors.status.warning;
-    let badgeText = '#FBBF24';
-    let label = 'ACTIVE';
-
-    if (status === PrescriptionStatus.DISPENSED) {
-      badgeBg = Colors.status.successBackground;
-      badgeBorder = Colors.status.success;
-      badgeText = '#34D399';
-      label = 'DISPENSED';
-    } else if (status === PrescriptionStatus.CANCELLED) {
-      badgeBg = Colors.status.errorBackground;
-      badgeBorder = Colors.status.error;
-      badgeText = '#F87171';
-      label = 'CANCELLED';
-    }
-
-    return (
-      <View
-        style={[
-          styles.statusBadge,
-          { backgroundColor: badgeBg, borderColor: badgeBorder },
-        ]}
-      >
-        <Text style={[styles.statusText, { color: badgeText }]}>{label}</Text>
-      </View>
-    );
-  };
-
   const renderItem = ({ item }: { item: PrescriptionModel }) => {
     const formattedDate = new Date(item.issuedAt || item.createdAt).toLocaleDateString(
       undefined,
@@ -114,7 +85,7 @@ export default function PatientWalletScreen() {
             <Text style={styles.codeText}>{item.code}</Text>
             <Text style={styles.dateText}>{formattedDate}</Text>
           </View>
-          {renderStatusBadge(item.status)}
+          <StatusBadge status={item.status} />
         </View>
 
         <View style={styles.divider} />
@@ -175,9 +146,12 @@ export default function PatientWalletScreen() {
           <View style={styles.centerContainer}>
             <Text style={styles.errorEmoji}>⚠️</Text>
             <Text style={styles.errorText}>Unable to load prescriptions</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
+            <Button
+              variant="outline"
+              size="sm"
+              title="Retry"
+              onPress={() => refetch()}
+            />
           </View>
         ) : (
           <FlatList
@@ -225,21 +199,10 @@ export default function PatientWalletScreen() {
                               </Text>
                             ) : null}
                           </View>
-                          <View
-                            style={[
-                              styles.reminderStatusBadge,
-                              isSent ? styles.badgeSuccess : styles.badgePending,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.reminderStatusText,
-                                isSent ? styles.textSuccess : styles.textPending,
-                              ]}
-                            >
-                              {isSent ? '✓ Alert Sent' : '⏳ Scheduled'}
-                            </Text>
-                          </View>
+                          <StatusBadge
+                            label={isSent ? '✓ Alert Sent' : '⏳ Scheduled'}
+                            variant={isSent ? 'success' : 'warning'}
+                          />
                         </View>
                         <Text style={styles.reminderDateText}>
                           Due Date:{' '}

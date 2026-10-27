@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Role, VerificationStatus } from '@anvaya/shared';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
+import { Button, StatusBadge } from '../../components/ui';
 
 export default function PendingVerificationScreen() {
   const { user, role, refreshMe, logout } = useAuthStore();
@@ -75,10 +74,11 @@ export default function PendingVerificationScreen() {
 
         {/* Verification Status Card */}
         <View style={styles.card}>
-          <View style={styles.statusBadge}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>PENDING VERIFICATION</Text>
-          </View>
+          <StatusBadge
+            label="PENDING VERIFICATION"
+            variant="warning"
+            style={{ marginBottom: 12, alignSelf: 'center' }}
+          />
 
           <Text style={styles.userName}>{user?.name}</Text>
           <Text style={styles.userRole}>{roleName}</Text>
@@ -121,27 +121,21 @@ export default function PendingVerificationScreen() {
           )}
 
           {/* Refresh Action */}
-          <TouchableOpacity
-            style={[styles.checkButton, isChecking && styles.buttonDisabled]}
+          <Button
+            title="🔄 Check Verification Status"
+            loading={isChecking}
             onPress={handleCheckStatus}
-            disabled={isChecking}
-            activeOpacity={0.8}
-          >
-            {isChecking ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.checkButtonText}>🔄 Check Verification Status</Text>
-            )}
-          </TouchableOpacity>
+            style={styles.checkButton}
+          />
 
           {/* Logout Action */}
-          <TouchableOpacity
-            style={styles.logoutButton}
+          <Button
+            variant="ghost"
+            title="Sign Out"
             onPress={() => logout()}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.logoutButtonText}>Sign Out</Text>
-          </TouchableOpacity>
+            style={styles.logoutButton}
+            textStyle={styles.logoutButtonText}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AppointmentStatus } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { StatusBadge } from '../../components/ui';
 
 interface AppointmentItem {
   id: string;
@@ -101,21 +102,6 @@ export default function DoctorAppointmentsScreen() {
     return a.status === statusFilter;
   });
 
-  const getStatusBadge = (status: AppointmentStatus) => {
-    switch (status) {
-      case AppointmentStatus.CONFIRMED:
-        return { bg: Colors.status.successBackground, text: Colors.status.success };
-      case AppointmentStatus.SCHEDULED:
-        return { bg: Colors.status.infoBackground, text: Colors.status.info };
-      case AppointmentStatus.COMPLETED:
-        return { bg: 'rgba(139, 92, 246, 0.15)', text: Colors.roles.patient };
-      case AppointmentStatus.CANCELLED:
-        return { bg: Colors.status.errorBackground, text: Colors.status.error };
-      default:
-        return { bg: Colors.surfaceElevated, text: Colors.text.secondary };
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       {/* Header */}
@@ -195,7 +181,6 @@ export default function DoctorAppointmentsScreen() {
             />
           }
           renderItem={({ item }) => {
-            const statusStyle = getStatusBadge(item.status);
             const dateObj = new Date(item.dateTime);
             const formattedDate = dateObj.toLocaleDateString('en-IN', {
               weekday: 'short',
@@ -230,18 +215,7 @@ export default function DoctorAppointmentsScreen() {
                       </Text>
                     ) : null}
                   </View>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: statusStyle.bg },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.statusText, { color: statusStyle.text }]}
-                    >
-                      {item.status}
-                    </Text>
-                  </View>
+                  <StatusBadge status={item.status} />
                 </View>
 
                 <View style={styles.divider} />

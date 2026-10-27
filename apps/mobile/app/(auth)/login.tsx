@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
+import { Button } from '../../components/ui';
 
 export default function LoginScreen() {
   const { login } = useAuthStore();
@@ -152,21 +152,13 @@ export default function LoginScreen() {
             </View>
 
             {/* Submit Button */}
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                isSubmitting && styles.submitButtonDisabled,
-              ]}
+            <Button
+              title="Sign In"
+              size="lg"
+              loading={isSubmitting}
               onPress={handleLogin}
-              disabled={isSubmitting}
-              activeOpacity={0.8}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.submitButtonText}>Sign In</Text>
-              )}
-            </TouchableOpacity>
+              style={{ marginTop: 8 }}
+            />
 
             {/* Register Link */}
             <View style={styles.footerRow}>

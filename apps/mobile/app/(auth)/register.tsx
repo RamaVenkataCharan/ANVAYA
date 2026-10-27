@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +15,7 @@ import { Role } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
+import { Button } from '../../components/ui';
 
 type SelectedRole = Role.DOCTOR | Role.SHOP | Role.PATIENT;
 
@@ -515,23 +515,13 @@ export default function RegisterScreen() {
             )}
 
             {/* Submit Button */}
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                isSubmitting && styles.submitButtonDisabled,
-              ]}
+            <Button
+              title={`Register as ${role === Role.DOCTOR ? 'Doctor' : role === Role.SHOP ? 'Medical Shop' : 'Patient'}`}
+              size="lg"
+              loading={isSubmitting}
               onPress={handleRegister}
-              disabled={isSubmitting}
-              activeOpacity={0.8}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.submitButtonText}>
-                  Register as {role === Role.DOCTOR ? 'Doctor' : role === Role.SHOP ? 'Medical Shop' : 'Patient'}
-                </Text>
-              )}
-            </TouchableOpacity>
+              style={{ marginTop: 8 }}
+            />
 
             {/* Login Link */}
             <View style={styles.footerRow}>

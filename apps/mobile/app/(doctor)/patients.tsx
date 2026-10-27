@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ReportType } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { StatusBadge, Button } from '../../components/ui';
 import { ReportViewModal } from '../../components/ReportViewModal';
 
 interface ConsentingPatient {
@@ -140,9 +141,13 @@ export default function DoctorPatientsScreen() {
           <Text style={styles.errorSubtitle}>
             Please pull down to retry or verify your doctor credentials.
           </Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
-            <Text style={styles.retryBtnText}>Retry</Text>
-          </TouchableOpacity>
+          <Button
+            variant="outline"
+            size="sm"
+            title="Retry"
+            onPress={() => refetch()}
+            style={{ marginTop: 12 }}
+          />
         </View>
       ) : consentingPatients.length === 0 ? (
         <View style={styles.centerContainer}>
@@ -188,9 +193,7 @@ export default function DoctorPatientsScreen() {
                       <Text style={styles.patientContact}>✉️ {email}</Text>
                     ) : null}
                   </View>
-                  <View style={styles.consentBadge}>
-                    <Text style={styles.consentBadgeText}>ACTIVE ACCESS</Text>
-                  </View>
+                  <StatusBadge label="ACTIVE ACCESS" variant="success" />
                 </View>
 
                 <View style={styles.divider} />
@@ -207,13 +210,12 @@ export default function DoctorPatientsScreen() {
                 ) : null}
 
                 {/* View Vault Button */}
-                <TouchableOpacity
-                  style={styles.viewVaultBtn}
+                <Button
+                  variant="secondary"
+                  title="📂 View Clinical Reports"
                   onPress={() => setSelectedPatient(item)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.viewVaultBtnText}>📂 View Clinical Reports</Text>
-                </TouchableOpacity>
+                  style={{ marginTop: 12 }}
+                />
               </View>
             );
           }}

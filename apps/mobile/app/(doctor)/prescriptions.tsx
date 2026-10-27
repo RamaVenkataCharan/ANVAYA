@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
@@ -14,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PrescriptionModel, PrescriptionStatus } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { StatusBadge, Button } from '../../components/ui';
 
 export default function DoctorPrescriptionsScreen() {
   const queryClient = useQueryClient();
@@ -73,36 +73,6 @@ export default function DoctorPrescriptionsScreen() {
     );
   };
 
-  const renderStatusBadge = (status: PrescriptionStatus) => {
-    let badgeBg = Colors.status.warningBackground;
-    let badgeBorder = Colors.status.warning;
-    let badgeText = '#FBBF24';
-    let label = 'ISSUED';
-
-    if (status === PrescriptionStatus.DISPENSED) {
-      badgeBg = Colors.status.successBackground;
-      badgeBorder = Colors.status.success;
-      badgeText = '#34D399';
-      label = 'DISPENSED';
-    } else if (status === PrescriptionStatus.CANCELLED) {
-      badgeBg = Colors.status.errorBackground;
-      badgeBorder = Colors.status.error;
-      badgeText = '#F87171';
-      label = 'CANCELLED';
-    }
-
-    return (
-      <View
-        style={[
-          styles.statusBadge,
-          { backgroundColor: badgeBg, borderColor: badgeBorder },
-        ]}
-      >
-        <Text style={[styles.statusText, { color: badgeText }]}>{label}</Text>
-      </View>
-    );
-  };
-
   const renderItem = ({ item }: { item: PrescriptionModel }) => {
     const formattedDate = new Date(item.issuedAt || item.createdAt).toLocaleDateString(
       undefined,
@@ -123,7 +93,7 @@ export default function DoctorPrescriptionsScreen() {
             <Text style={styles.codeText}>{item.code}</Text>
             <Text style={styles.dateText}>Issued on {formattedDate}</Text>
           </View>
-          {renderStatusBadge(item.status)}
+          <StatusBadge status={item.status} />
         </View>
 
         <View style={styles.divider} />
@@ -156,18 +126,13 @@ export default function DoctorPrescriptionsScreen() {
         {/* Actions */}
         {item.status === PrescriptionStatus.ISSUED && (
           <View style={styles.cardActions}>
-            <TouchableOpacity
-              style={[styles.cancelButton, isCancelling && styles.buttonDisabled]}
+            <Button
+              variant="destructive"
+              size="sm"
+              title="Cancel Prescription"
+              loading={isCancelling}
               onPress={() => handleCancel(item)}
-              disabled={isCancelling}
-              activeOpacity={0.8}
-            >
-              {isCancelling ? (
-                <ActivityIndicator color={Colors.status.error} size="small" />
-              ) : (
-                <Text style={styles.cancelButtonText}>Cancel Prescription</Text>
-              )}
-            </TouchableOpacity>
+            />
           </View>
         )}
       </View>
@@ -195,9 +160,12 @@ export default function DoctorPrescriptionsScreen() {
           <View style={styles.centerContainer}>
             <Text style={styles.errorEmoji}>⚠️</Text>
             <Text style={styles.errorText}>Unable to load prescriptions</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
+            <Button
+              variant="outline"
+              size="sm"
+              title="Retry"
+              onPress={() => refetch()}
+            />
           </View>
         ) : (
           <FlatList

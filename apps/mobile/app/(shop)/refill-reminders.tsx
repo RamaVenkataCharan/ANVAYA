@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateRefillReminderInput } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { StatusBadge } from '../../components/ui';
 
 interface RefillMedicineItem {
   id?: string;
@@ -194,21 +195,10 @@ export default function ShopRefillRemindersScreen() {
               {item.prescription?.code || 'Prescription Refill'}
             </Text>
           </View>
-          <View
-            style={[
-              styles.statusBadge,
-              isSent ? styles.badgeSent : styles.badgePending,
-            ]}
-          >
-            <Text
-              style={[
-                styles.badgeText,
-                isSent ? styles.badgeSentText : styles.badgePendingText,
-              ]}
-            >
-              {isSent ? '✓ PUSH SENT' : '⏳ SCHEDULED'}
-            </Text>
-          </View>
+          <StatusBadge
+            label={isSent ? '✓ PUSH SENT' : '⏳ SCHEDULED'}
+            variant={isSent ? 'success' : 'warning'}
+          />
         </View>
 
         {medList ? (

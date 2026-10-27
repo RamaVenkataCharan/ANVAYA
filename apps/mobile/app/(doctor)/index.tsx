@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { VerificationStatus } from '@anvaya/shared';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
+import { StatusBadge } from '../../components/ui';
 
 export default function DoctorDashboard() {
   const router = useRouter();
@@ -64,35 +65,16 @@ export default function DoctorDashboard() {
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardSectionTitle}>Doctor Information</Text>
-            <View
-              style={[
-                styles.verifiedTag,
+            <StatusBadge
+              label={
                 isApproved
-                  ? styles.verifiedTagApproved
-                  : isPending
-                  ? styles.verifiedTagPending
-                  : styles.verifiedTagRejected,
-              ]}
-              accessibilityRole="text"
-              accessibilityLabel={`Verification Status: ${verificationStatus || 'Pending'}`}
-            >
-              <Text
-                style={[
-                  styles.verifiedText,
-                  isApproved
-                    ? styles.verifiedTextApproved
-                    : isPending
-                    ? styles.verifiedTextPending
-                    : styles.verifiedTextRejected,
-                ]}
-              >
-                {isApproved
                   ? '✓ VERIFIED'
                   : isPending
                   ? '⏳ PENDING APPROVAL'
-                  : '✕ REJECTED'}
-              </Text>
-            </View>
+                  : '✕ REJECTED'
+              }
+              variant={isApproved ? 'success' : isPending ? 'warning' : 'error'}
+            />
           </View>
 
           <View style={styles.divider} />

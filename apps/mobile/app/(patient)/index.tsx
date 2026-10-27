@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
+import { StatusBadge } from '../../components/ui';
 
 export default function PatientDashboard() {
   const router = useRouter();
@@ -60,13 +61,7 @@ export default function PatientDashboard() {
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardSectionTitle}>Personal Health Profile</Text>
-            <View
-              style={styles.verifiedTag}
-              accessibilityRole="text"
-              accessibilityLabel="Account status: Verified Active"
-            >
-              <Text style={styles.verifiedText}>✓ VERIFIED</Text>
-            </View>
+            <StatusBadge label="✓ VERIFIED" variant="success" />
           </View>
 
           <View style={styles.divider} />

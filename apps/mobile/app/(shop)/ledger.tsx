@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LedgerType, CreateLedgerEntryInput } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { StatusBadge } from '../../components/ui';
 
 interface PatientBalanceSummary {
   patientId: string;
@@ -258,23 +259,10 @@ export default function ShopLedgerScreen() {
 
           <View style={styles.entryBottomRow}>
             <Text style={styles.entryDate}>{formattedDate}</Text>
-            <View
-              style={[
-                styles.typePill,
-                isCredit ? styles.typePillCredit : styles.typePillPayment,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.typePillText,
-                  isCredit
-                    ? styles.typePillCreditText
-                    : styles.typePillPaymentText,
-                ]}
-              >
-                {isCredit ? 'CREDIT GIVEN' : 'PAYMENT RECEIVED'}
-              </Text>
-            </View>
+            <StatusBadge
+              label={isCredit ? 'CREDIT GIVEN' : 'PAYMENT RECEIVED'}
+              variant={isCredit ? 'warning' : 'success'}
+            />
           </View>
         </View>
       </View>

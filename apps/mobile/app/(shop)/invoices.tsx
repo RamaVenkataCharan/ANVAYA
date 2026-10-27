@@ -18,6 +18,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { StatusBadge } from '../../components/ui';
 import { useAuthStore } from '../../store/auth';
 import { escapeHtml } from '@anvaya/shared';
 
@@ -321,29 +322,10 @@ export default function ShopInvoicesScreen() {
             <Text style={styles.billNumber}>{item.billNumber}</Text>
             <Text style={styles.billDate}>{formattedDate}</Text>
           </View>
-          <View
-            style={[
-              styles.statusPill,
-              isCredit
-                ? styles.statusPillCredit
-                : isPaid
-                ? styles.statusPillPaid
-                : styles.statusPillPending,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusPillText,
-                isCredit
-                  ? styles.statusPillCreditText
-                  : isPaid
-                  ? styles.statusPillPaidText
-                  : styles.statusPillPendingText,
-              ]}
-            >
-              {isCredit ? 'Khata Credit' : item.paymentMethod}
-            </Text>
-          </View>
+          <StatusBadge
+            label={isCredit ? 'Khata Credit' : item.paymentMethod}
+            variant={isCredit ? 'warning' : isPaid ? 'success' : 'info'}
+          />
         </View>
 
         <View style={styles.invoiceDetailRow}>
