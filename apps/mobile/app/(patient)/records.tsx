@@ -22,6 +22,7 @@ import { ReportType } from '@anvaya/shared';
 import { api, API_BASE_URL } from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../store/auth';
+import { ReportViewModal } from '../../components/ReportViewModal';
 
 interface ReportItem {
   id: string;
@@ -80,6 +81,8 @@ export default function PatientRecordsScreen() {
   } | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewingReport, setViewingReport] = useState<ReportItem | null>(null);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
 
   // 1. Fetch patient reports
   const {
@@ -274,16 +277,8 @@ export default function PatientRecordsScreen() {
   };
 
   const handleViewReport = (report: ReportItem) => {
-    // Open authenticated streaming endpoint
-    const fileUrl = `${API_BASE_URL}/reports/${report.id}/file`;
-    Linking.openURL(fileUrl).catch(() => {
-      Alert.alert(
-        'Document Preview',
-        `Title: ${report.title}\nType: ${report.type}\nNotes: ${report.notes || 'None'}\nUploaded: ${new Date(
-          report.uploadedAt
-        ).toLocaleDateString()}`
-      );
-    });
+    setViewingReport(report);
+    setIsViewModalVisible(true);
   };
 
   const filteredReports = reports.filter((r) => {
@@ -731,6 +726,16 @@ export default function PatientRecordsScreen() {
           </SafeAreaView>
         </View>
       </Modal>
+
+      {/* Authenticated In-App Report Viewer Modal */}
+      <ReportViewModal
+        visible={isViewModalVisible}
+        report={viewingReport}
+        onClose={() => {
+          setIsViewModalVisible(false);
+          setViewingReport(null);
+        }}
+      />
     </SafeAreaView>
   );
 }

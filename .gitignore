@@ -58,3 +58,6 @@ docs/audit-evidence/
 .npmrc
 coverage/
 apps/server/coverage/
+uploads/
+apps/server/uploads/
+

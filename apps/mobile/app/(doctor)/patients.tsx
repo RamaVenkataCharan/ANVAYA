@@ -17,6 +17,7 @@ import * as Linking from 'expo-linking';
 import { ReportType } from '@anvaya/shared';
 import { api, API_BASE_URL } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { ReportViewModal } from '../../components/ReportViewModal';
 
 interface ConsentingPatient {
   id: string; // consent id
@@ -50,6 +51,8 @@ interface PatientReport {
 
 export default function DoctorPatientsScreen() {
   const [selectedPatient, setSelectedPatient] = useState<ConsentingPatient | null>(null);
+  const [viewingReport, setViewingReport] = useState<PatientReport | null>(null);
+  const [isReportModalVisible, setIsReportModalVisible] = useState(false);
 
   // 1. Fetch patients who granted consent to this doctor
   const {
@@ -85,15 +88,8 @@ export default function DoctorPatientsScreen() {
   });
 
   const handleOpenReport = (report: PatientReport) => {
-    const fileUrl = `${API_BASE_URL}/reports/${report.id}/file`;
-    Linking.openURL(fileUrl).catch(() => {
-      Alert.alert(
-        'Report Details',
-        `Title: ${report.title}\nCategory: ${report.type}\nNotes: ${
-          report.notes || 'None'
-        }\nUploaded: ${new Date(report.uploadedAt).toLocaleDateString()}`
-      );
-    });
+    setViewingReport(report);
+    setIsReportModalVisible(true);
   };
 
   const getReportTypeBadge = (type: ReportType) => {
@@ -344,6 +340,16 @@ export default function DoctorPatientsScreen() {
           </SafeAreaView>
         </View>
       </Modal>
+
+      {/* Authenticated In-App Report Viewer Modal */}
+      <ReportViewModal
+        visible={isReportModalVisible}
+        report={viewingReport}
+        onClose={() => {
+          setIsReportModalVisible(false);
+          setViewingReport(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
