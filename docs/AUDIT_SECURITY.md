@@ -72,3 +72,55 @@ Every finding below details the severity, category, affected files, exact eviden
   Add `app.set('trust proxy', config.isProduction ? 1 : false);` in `apps/server/src/app.ts`. Ensure rate limiters that protect authenticated routes key on `req.user.userId` rather than client IP.
 
 ---
+
+### FLAG-SEC-02: Refresh Token Revocations Stored Only in Memory on `main`
+- **Severity:** **HIGH**
+- **Category:** Authentication & Session Integrity
+- **Affected Files:**
+  - [`apps/server/prisma/schema.prisma`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/prisma/schema.prisma)
+  - [`apps/server/src/modules/auth/auth.service.ts:320-390`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/auth/auth.service.ts#L320-L390)
+  - [`apps/server/src/db/inMemoryDb.ts:175-210`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/db/inMemoryDb.ts#L175-L210)
+- **Evidence:**
+  On the `main` branch, `prisma/schema.prisma` contains no `RefreshToken` model. `inMemoryDb.refreshTokens` is an in-memory array `DbRefreshToken[]`. In `AuthService`:
+  ```typescript
+  // When isDbConnected() is true:
+  const tokenRecord = await prisma.refreshToken.findUnique(...) // Prisma Client has no RefreshToken model on main!
+  ```
+- **Impact:**
+  On server restart, container redeploy, or auto-scaling event:
+  - All revoked refresh tokens (from user logout or administrator suspension) are wiped.
+  - Active users have their refresh tokens lost, causing widespread forced logouts.
+  - Stolen refresh tokens that were previously revoked become invalid or behave unpredictably across restarts.
+- **Remediation:**
+  Commit and migrate the `RefreshToken` table schema:
+  ```prisma
+  model RefreshToken {
+    id        String    @id @default(uuid())
+    userId    String
+    user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    hash      String    @unique
+    expiresAt DateTime
+    revokedAt DateTime?
+    createdAt DateTime  @default(now())
+
+    @@index([userId, revokedAt])
+    @@index([hash])
+  }
+  ```
+
+---
+
+### FLAG-SEC-03: Missing Multer File Filter on Report Upload Endpoint
+- **Severity:** **MEDIUM**
+- **Category:** Input Validation / Unrestricted File Upload
+- **Affected File:** [`apps/server/src/modules/reports/report.routes.ts:13-18`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/reports/report.routes.ts#L13-L18)
+- **Evidence:**
+  ```typescript
+  // apps/server/src/modules/reports/report.routes.ts
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    // Missing: fileFilter
+  });
