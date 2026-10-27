@@ -151,7 +151,7 @@ export default function PatientRecordsScreen() {
       resetUploadForm();
       Alert.alert('Report Saved', 'Health report has been uploaded to your vault.');
     },
-    onError: async (err: any) => {
+    onError: async (err: unknown) => {
       // Fallback: If upload multipart failed, try JSON upload with fileUrl
       try {
         await api.post('/reports', {
@@ -164,10 +164,11 @@ export default function PatientRecordsScreen() {
         setIsUploadModalVisible(false);
         resetUploadForm();
         Alert.alert('Report Saved', 'Health report has been registered in your vault.');
-      } catch (fallbackErr: any) {
+      } catch (_fallbackErr: unknown) {
+        const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
         const msg =
-          err.response?.data?.message ||
-          err.message ||
+          axiosErr.response?.data?.message ||
+          axiosErr.message ||
           'Failed to upload report. Please check file format.';
         setUploadError(msg);
       }
@@ -185,8 +186,9 @@ export default function PatientRecordsScreen() {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       Alert.alert('Deleted', 'Report was removed from your vault.');
     },
-    onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Could not delete report.';
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      const msg = axiosErr.response?.data?.message || 'Could not delete report.';
       Alert.alert('Error', msg);
     },
     onSettled: () => {

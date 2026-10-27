@@ -65,15 +65,16 @@ export default function ScanPrescriptionScreen() {
       } else {
         throw new Error('No data received from verification service');
       }
-    } catch (err: any) {
-      if (err.response?.status === 429) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string; error?: string } } };
+      if (axiosErr.response?.status === 429) {
         setErrorMessage(
           'Too many verification requests. Security rate limit active: please wait 10 minutes before retrying.'
         );
       } else {
         const msg =
-          err.response?.data?.message ||
-          err.response?.data?.error ||
+          axiosErr.response?.data?.message ||
+          axiosErr.response?.data?.error ||
           'Prescription not found or invalid QR token.';
         setErrorMessage(msg);
       }
@@ -110,19 +111,22 @@ export default function ScanPrescriptionScreen() {
               setDispenseSuccess(true);
               // Invalidate caches
               await queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
-            } catch (dispenseErr: any) {
-              if (dispenseErr.response?.status === 400) {
+            } catch (dispenseErr: unknown) {
+              const axiosErr = dispenseErr as {
+                response?: { status?: number; data?: { message?: string; error?: string } };
+              };
+              if (axiosErr.response?.status === 400) {
                 const msg =
-                  dispenseErr.response?.data?.message ||
+                  axiosErr.response?.data?.message ||
                   'Prescription has already been dispensed or cannot be fulfilled.';
                 setErrorMessage(`❌ Dispense Blocked: ${msg}`);
-              } else if (dispenseErr.response?.status === 429) {
+              } else if (axiosErr.response?.status === 429) {
                 setErrorMessage(
                   'Rate limit reached: Too many dispense attempts. Please wait.'
                 );
               } else {
                 const msg =
-                  dispenseErr.response?.data?.message ||
+                  axiosErr.response?.data?.message ||
                   'An error occurred while dispensing. Please try again.';
                 setErrorMessage(msg);
               }

@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/auth';
+import { useNetworkStore } from '../store/network';
 
 // EXPO_PUBLIC_API_URL should point to the backend root with /api/v1 prefix
 // When using a physical phone or Expo Go, set EXPO_PUBLIC_API_URL to http://<YOUR_LAN_IP>:4000/api/v1
@@ -55,8 +56,16 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
 // Response interceptor: on 401 tries the refresh endpoint once, then logs out
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    useNetworkStore.getState().setServerReachable(true);
+    return response;
+  },
   async (error: AxiosError) => {
+    // Notify network store if server is unreachable or offline
+    if (!error.response || error.code === 'ERR_NETWORK') {
+      useNetworkStore.getState().setServerReachable(false);
+    }
+
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };

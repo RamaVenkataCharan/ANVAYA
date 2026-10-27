@@ -61,9 +61,10 @@ export function ReportViewModal({ visible, report, onClose }: ReportViewModalPro
         // Document: open native share/view sheet
         await shareOrOpenDocument(res.localUri, targetReport.title, res.mimetype);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLoading(false);
-      setErrorMessage(err?.message || 'Unable to download report. Please try again.');
+      const errorObj = err as Error;
+      setErrorMessage(errorObj.message || 'Unable to download report. Please try again.');
     }
   };
 
@@ -71,8 +72,9 @@ export function ReportViewModal({ visible, report, onClose }: ReportViewModalPro
     if (downloadedUri && report) {
       try {
         await shareOrOpenDocument(downloadedUri, report.title, mimeType);
-      } catch (err: any) {
-        setErrorMessage(err?.message || 'Unable to open document viewer.');
+      } catch (err: unknown) {
+        const errorObj = err as Error;
+        setErrorMessage(errorObj.message || 'Unable to open document viewer.');
       }
     }
   };

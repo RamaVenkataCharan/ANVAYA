@@ -26,6 +26,25 @@ interface PatientBalanceSummary {
   lastActivity: string;
 }
 
+interface ShopLedgerEntry {
+  id: string;
+  shopId: string;
+  patientId: string;
+  type: LedgerType;
+  amount: number;
+  description?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  patient?: {
+    id: string;
+    user?: {
+      name: string;
+      email: string;
+      phone: string;
+    };
+  };
+}
+
 export default function ShopLedgerScreen() {
   const queryClient = useQueryClient();
 
@@ -52,7 +71,7 @@ export default function ShopLedgerScreen() {
     isError,
     refetch,
     isRefetching,
-  } = useQuery({
+  } = useQuery<ShopLedgerEntry[]>({
     queryKey: ['ledger'],
     queryFn: async () => {
       const response = await api.get('/billing/ledger');
@@ -64,7 +83,7 @@ export default function ShopLedgerScreen() {
   const patientMap = new Map<string, PatientBalanceSummary>();
   let totalKhataOutstanding = 0;
 
-  ledgerEntries.forEach((entry: any) => {
+  ledgerEntries.forEach((entry: ShopLedgerEntry) => {
     const pId = entry.patientId;
     const pName = entry.patient?.user?.name || 'Customer';
     const pPhone = entry.patient?.user?.phone || '';
@@ -100,7 +119,7 @@ export default function ShopLedgerScreen() {
 
   // Filter entries if a patient is selected
   const displayedEntries = selectedPatientId
-    ? ledgerEntries.filter((e: any) => e.patientId === selectedPatientId)
+    ? ledgerEntries.filter((e: ShopLedgerEntry) => e.patientId === selectedPatientId)
     : ledgerEntries;
 
   // Selected patient balance details
@@ -148,8 +167,9 @@ export default function ShopLedgerScreen() {
       } else {
         setLookupError('No patient found with this phone number.');
       }
-    } catch (err: any) {
-      setLookupError(err.response?.data?.message || 'Patient not found.');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setLookupError(axiosErr.response?.data?.message || 'Patient not found.');
     } finally {
       setIsLookingUp(false);
     }
@@ -194,16 +214,17 @@ export default function ShopLedgerScreen() {
         'Payment Recorded',
         `₹${amt.toFixed(2)} received from ${paymentPatientName} has been credited to their Khata.`
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
       setPaymentError(
-        err.response?.data?.message || 'Failed to record payment entry.'
+        axiosErr.response?.data?.message || 'Failed to record payment entry.'
       );
     } finally {
       setIsSubmittingPayment(false);
     }
   };
 
-  const renderEntryItem = ({ item }: { item: any }) => {
+  const renderEntryItem = ({ item }: { item: ShopLedgerEntry }) => {
     const isCredit = item.type === LedgerType.CREDIT;
     const formattedDate = new Date(item.createdAt).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -430,7 +451,7 @@ export default function ShopLedgerScreen() {
               </Text>
             </View>
           ) : (
-            displayedEntries.map((item: any) => (
+            displayedEntries.map((item: ShopLedgerEntry) => (
               <View key={item.id}>{renderEntryItem({ item })}</View>
             ))
           )}

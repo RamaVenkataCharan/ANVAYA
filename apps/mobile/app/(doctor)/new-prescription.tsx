@@ -77,11 +77,12 @@ export default function NewPrescriptionScreen() {
         setPatient(null);
         setLookupError('No patient found with this phone number.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setPatient(null);
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'No patient found with this phone number.';
       setLookupError(msg);
     } finally {
@@ -101,7 +102,7 @@ export default function NewPrescriptionScreen() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateMedicine = (index: number, field: keyof PrescriptionItemInput, value: any) => {
+  const updateMedicine = (index: number, field: keyof PrescriptionItemInput, value: string | number) => {
     setItems((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -165,10 +166,11 @@ export default function NewPrescriptionScreen() {
       } else {
         throw new Error('Server did not return a valid prescription code');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'Failed to issue prescription. Please check all fields.';
       setSubmitError(msg);
     } finally {

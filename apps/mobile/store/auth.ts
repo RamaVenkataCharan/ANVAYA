@@ -166,9 +166,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           });
           return;
         }
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
+        const axiosErr = apiError as { response?: { status?: number } };
         // If the token was invalid/expired and refresh failed, logout was called
-        if (apiError?.response?.status === 401) {
+        if (axiosErr?.response?.status === 401) {
           set({ isLoading: false });
           return;
         }
@@ -181,7 +182,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       set({ isLoading: false });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('Failed to restore session:', err);
       set({
         user: null,

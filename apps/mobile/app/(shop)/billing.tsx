@@ -99,7 +99,7 @@ export default function ShopBillingScreen() {
       }
       if (prescriptionData.items && prescriptionData.items.length > 0) {
         const mappedItems: BillLineItem[] = prescriptionData.items.map(
-          (item: any, idx: number) => ({
+          (item: { medicine: string; quantity?: number }, idx: number) => ({
             id: String(idx + 1),
             medicine: item.medicine,
             quantity: String(item.quantity || 1),
@@ -133,11 +133,12 @@ export default function ShopBillingScreen() {
         setPatient(null);
         setLookupError('No patient found with this phone number.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setPatient(null);
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'No patient found with this phone number.';
       setLookupError(msg);
     } finally {
@@ -238,10 +239,11 @@ export default function ShopBillingScreen() {
       await queryClient.invalidateQueries({ queryKey: ['ledger'] });
 
       setCreatedInvoice(invoiceData);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'Failed to generate invoice. Please check the inputs.';
       setSubmitError(msg);
     } finally {
@@ -352,8 +354,17 @@ export default function ShopBillingScreen() {
               <View style={styles.divider} />
 
               <Text style={styles.sectionTitle}>Purchased Items</Text>
-              {createdInvoice.items?.map((item: any, idx: number) => (
-                <View key={idx} style={styles.invoiceItemRow}>
+              {createdInvoice.items?.map(
+                (
+                  item: {
+                    medicine: string;
+                    quantity: number;
+                    unitPrice: number;
+                    totalPrice: number;
+                  },
+                  idx: number
+                ) => (
+                  <View key={idx} style={styles.invoiceItemRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.invoiceItemName}>{item.medicine}</Text>
                     <Text style={styles.invoiceItemSub}>

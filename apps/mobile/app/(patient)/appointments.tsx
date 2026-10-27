@@ -112,10 +112,11 @@ export default function PatientAppointmentsScreen() {
       resetForm();
       Alert.alert('Appointment Booked', 'Your appointment has been scheduled successfully.');
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'Unable to book appointment. Please try again.';
       setFormError(msg);
     },
@@ -134,10 +135,11 @@ export default function PatientAppointmentsScreen() {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       Alert.alert('Cancelled', 'Your appointment has been cancelled.');
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'Unable to cancel this appointment.';
       Alert.alert('Cancellation Failed', msg);
     },

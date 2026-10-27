@@ -93,10 +93,11 @@ export default function PatientConsentScreen() {
         'The doctor can now securely view your clinical documents and test reports.'
       );
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'Failed to grant consent. Please try again.';
       setFormError(msg);
     },
@@ -116,10 +117,11 @@ export default function PatientConsentScreen() {
         'Clinical access has been revoked. The doctor can no longer view your health reports.'
       );
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'Failed to revoke consent.';
       Alert.alert('Error', msg);
     },

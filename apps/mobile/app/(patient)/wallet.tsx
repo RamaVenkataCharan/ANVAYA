@@ -15,6 +15,24 @@ import { PrescriptionModel, PrescriptionStatus } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 
+interface PatientRefillItem {
+  id?: string;
+  medicine: string;
+}
+
+interface PatientRefillReminder {
+  id: string;
+  prescriptionId: string;
+  remindAt: string;
+  sent: boolean;
+  notes?: string | null;
+  prescription?: {
+    id: string;
+    code: string;
+    items?: PatientRefillItem[];
+  };
+}
+
 export default function PatientWalletScreen() {
   const router = useRouter();
 
@@ -34,7 +52,7 @@ export default function PatientWalletScreen() {
   });
 
   // Fetch patient's refill reminders
-  const { data: refillReminders = [] } = useQuery({
+  const { data: refillReminders = [] } = useQuery<PatientRefillReminder[]>({
     queryKey: ['refills', 'patient'],
     queryFn: async () => {
       const response = await api.get('/refills');
@@ -171,7 +189,7 @@ export default function PatientWalletScreen() {
               refillReminders.length > 0 ? (
                 <View style={styles.remindersSection}>
                   <Text style={styles.remindersTitle}>⏰ Refill Reminders</Text>
-                  {refillReminders.map((reminder: any) => {
+                  {refillReminders.map((reminder: PatientRefillReminder) => {
                     const isSent = reminder.sent;
                     const remindDate = new Date(reminder.remindAt).toLocaleDateString(
                       undefined,
@@ -182,7 +200,7 @@ export default function PatientWalletScreen() {
                       }
                     );
                     const meds = (reminder.prescription?.items || [])
-                      .map((m: any) => m.medicine)
+                      .map((m: PatientRefillItem) => m.medicine)
                       .join(', ');
 
                     return (

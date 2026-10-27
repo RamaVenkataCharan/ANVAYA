@@ -80,7 +80,7 @@ export default function RegisterScreen() {
       return;
     }
 
-    let payload: any = {
+    let payload: Record<string, unknown> = {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: cleanPhone,
@@ -156,11 +156,15 @@ export default function RegisterScreen() {
       } else {
         throw new Error('Unexpected response format from server');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+      };
       const serverMsg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
+        axiosErr.message ||
         'Registration failed. Please verify your details.';
       setErrorMessage(serverMsg);
     } finally {

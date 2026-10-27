@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,26 +14,60 @@ import { Colors } from '../../constants/colors';
 
 export default function PatientDashboard() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, refreshMe } = useAuthStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const patient = user?.patientProfile;
+
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshMe();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              void onRefresh();
+            }}
+            tintColor={Colors.roles.patient}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.headerSubtitle}>PATIENT WALLET</Text>
             <Text style={styles.headerTitle}>{user?.name}</Text>
           </View>
-          <View style={styles.roleBadge}>
+          <View
+            style={styles.roleBadge}
+            accessibilityRole="text"
+            accessibilityLabel="Role: Registered Patient"
+          >
             <Text style={styles.roleBadgeText}>👤 Patient</Text>
           </View>
         </View>
 
         {/* Patient Profile Card */}
         <View style={styles.card}>
-          <Text style={styles.cardSectionTitle}>Personal Health Profile</Text>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.cardSectionTitle}>Personal Health Profile</Text>
+            <View
+              style={styles.verifiedTag}
+              accessibilityRole="text"
+              accessibilityLabel="Account status: Verified Active"
+            >
+              <Text style={styles.verifiedText}>✓ VERIFIED</Text>
+            </View>
+          </View>
 
           <View style={styles.divider} />
 
@@ -208,10 +243,29 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   cardSectionTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: Colors.text.primary,
+  },
+  verifiedTag: {
+    backgroundColor: Colors.status.successBackground,
+    borderColor: Colors.status.success,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.status.success,
+    letterSpacing: 0.5,
   },
   divider: {
     height: 1,

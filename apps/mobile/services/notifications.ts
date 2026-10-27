@@ -61,7 +61,8 @@ export async function registerPushTokenWithBackend(): Promise<void> {
       await api.post('/users/push-token', { token });
       console.log('[PushNotifications] Push token registered successfully with ANVAYA');
     }
-  } catch (err: any) {
-    console.log('[PushNotifications] Failed to save token on backend:', err.message);
+  } catch (err: unknown) {
+    const errorObj = err as Error;
+    console.log('[PushNotifications] Failed to save token on backend:', errorObj.message);
   }
 }

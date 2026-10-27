@@ -1,31 +1,61 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { VerificationStatus } from '@anvaya/shared';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
 
 export default function DoctorDashboard() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, verificationStatus, refreshMe } = useAuthStore();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const doctor = user?.doctorProfile;
+
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshMe();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const isApproved = verificationStatus === VerificationStatus.APPROVED;
+  const isPending = verificationStatus === VerificationStatus.PENDING;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => {
+              void onRefresh();
+            }}
+            tintColor={Colors.roles.doctor}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.headerSubtitle}>CLINICAL PORTAL</Text>
             <Text style={styles.headerTitle}>Dr. {user?.name}</Text>
           </View>
-          <View style={styles.roleBadge}>
+          <View
+            style={styles.roleBadge}
+            accessibilityRole="text"
+            accessibilityLabel="Role: Registered Doctor"
+          >
             <Text style={styles.roleBadgeText}>🩺 Doctor</Text>
           </View>
         </View>
@@ -34,8 +64,34 @@ export default function DoctorDashboard() {
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardSectionTitle}>Doctor Information</Text>
-            <View style={styles.verifiedTag}>
-              <Text style={styles.verifiedText}>✓ VERIFIED</Text>
+            <View
+              style={[
+                styles.verifiedTag,
+                isApproved
+                  ? styles.verifiedTagApproved
+                  : isPending
+                  ? styles.verifiedTagPending
+                  : styles.verifiedTagRejected,
+              ]}
+              accessibilityRole="text"
+              accessibilityLabel={`Verification Status: ${verificationStatus || 'Pending'}`}
+            >
+              <Text
+                style={[
+                  styles.verifiedText,
+                  isApproved
+                    ? styles.verifiedTextApproved
+                    : isPending
+                    ? styles.verifiedTextPending
+                    : styles.verifiedTextRejected,
+                ]}
+              >
+                {isApproved
+                  ? '✓ VERIFIED'
+                  : isPending
+                  ? '⏳ PENDING APPROVAL'
+                  : '✕ REJECTED'}
+              </Text>
             </View>
           </View>
 
@@ -210,18 +266,36 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   verifiedTag: {
-    backgroundColor: Colors.status.successBackground,
-    borderColor: Colors.status.success,
-    borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    borderWidth: 1,
+  },
+  verifiedTagApproved: {
+    backgroundColor: Colors.status.successBackground,
+    borderColor: Colors.status.success,
+  },
+  verifiedTagPending: {
+    backgroundColor: Colors.status.warningBackground,
+    borderColor: Colors.status.warning,
+  },
+  verifiedTagRejected: {
+    backgroundColor: Colors.status.errorBackground,
+    borderColor: Colors.status.error,
   },
   verifiedText: {
     fontSize: 10,
     fontWeight: '800',
-    color: Colors.status.success,
     letterSpacing: 0.5,
+  },
+  verifiedTextApproved: {
+    color: Colors.status.success,
+  },
+  verifiedTextPending: {
+    color: Colors.status.warning,
+  },
+  verifiedTextRejected: {
+    color: Colors.status.error,
   },
   divider: {
     height: 1,

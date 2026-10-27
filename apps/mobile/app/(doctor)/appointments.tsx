@@ -64,10 +64,11 @@ export default function DoctorAppointmentsScreen() {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       Alert.alert('Status Updated', `Appointment marked as ${variables.status}.`);
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'Failed to update appointment status.';
       Alert.alert('Update Failed', msg);
     },

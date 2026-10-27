@@ -18,6 +18,37 @@ import { CreateRefillReminderInput } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 
+interface RefillMedicineItem {
+  id?: string;
+  medicine: string;
+}
+
+interface ShopRefillReminderItem {
+  id: string;
+  shopId: string;
+  prescriptionId: string;
+  remindAt: string;
+  sent: boolean;
+  notes?: string | null;
+  patient?: {
+    id: string;
+    user?: {
+      name: string;
+      phone: string;
+    };
+  };
+  prescription?: {
+    id: string;
+    code: string;
+    patient?: {
+      user?: {
+        name: string;
+      };
+    };
+    items?: RefillMedicineItem[];
+  };
+}
+
 export default function ShopRefillRemindersScreen() {
   const queryClient = useQueryClient();
   const params = useLocalSearchParams<{
@@ -52,7 +83,7 @@ export default function ShopRefillRemindersScreen() {
     isError,
     refetch,
     isRefetching,
-  } = useQuery({
+  } = useQuery<ShopRefillReminderItem[]>({
     queryKey: ['refills'],
     queryFn: async () => {
       const response = await api.get('/refills');
@@ -98,9 +129,10 @@ export default function ShopRefillRemindersScreen() {
         'Refill Reminder Scheduled',
         `An automated push notification will be sent to the patient when due.`
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
       setCreateError(
-        err.response?.data?.message ||
+        axiosErr.response?.data?.message ||
           'Failed to schedule refill reminder. Ensure prescription exists and was dispensed.'
       );
     } finally {
@@ -123,10 +155,11 @@ export default function ShopRefillRemindersScreen() {
             try {
               await api.delete(`/refills/${id}`);
               await queryClient.invalidateQueries({ queryKey: ['refills'] });
-            } catch (err: any) {
+            } catch (err: unknown) {
+              const axiosErr = err as { response?: { data?: { message?: string } } };
               Alert.alert(
                 'Error',
-                err.response?.data?.message || 'Could not cancel reminder.'
+                axiosErr.response?.data?.message || 'Could not cancel reminder.'
               );
             } finally {
               setCancelingId(null);
@@ -137,7 +170,7 @@ export default function ShopRefillRemindersScreen() {
     );
   };
 
-  const renderReminderItem = ({ item }: { item: any }) => {
+  const renderReminderItem = ({ item }: { item: ShopRefillReminderItem }) => {
     const isSent = item.sent;
     const remindDate = new Date(item.remindAt).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -149,7 +182,7 @@ export default function ShopRefillRemindersScreen() {
       item.patient?.user?.name ||
       'Patient';
     const medList = (item.prescription?.items || [])
-      .map((m: any) => m.medicine)
+      .map((m: RefillMedicineItem) => m.medicine)
       .join(', ');
 
     return (

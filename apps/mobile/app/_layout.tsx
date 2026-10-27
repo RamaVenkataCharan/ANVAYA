@@ -8,6 +8,8 @@ import { Role, VerificationStatus } from '@anvaya/shared';
 import { useAuthStore } from '../store/auth';
 import { Colors } from '../constants/colors';
 import { registerPushTokenWithBackend } from '../services/notifications';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import { OfflineNotice } from '../components/OfflineNotice';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -180,10 +182,13 @@ function RootNavigationLayout() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <StatusBar style="light" />
-        <RootNavigationLayout />
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="light" />
+          <OfflineNotice />
+          <RootNavigationLayout />
+        </QueryClientProvider>
+      </ErrorBoundary>
     </SafeAreaProvider>
   );
 }

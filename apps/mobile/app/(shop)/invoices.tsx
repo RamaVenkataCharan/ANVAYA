@@ -21,13 +21,43 @@ import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../store/auth';
 import { escapeHtml } from '@anvaya/shared';
 
+interface ShopInvoiceMedicineItem {
+  id?: string;
+  medicine: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+interface ShopInvoiceItem {
+  id: string;
+  billNumber: string;
+  patientId?: string | null;
+  subtotal: number;
+  tax: number;
+  total: number;
+  paymentStatus: string;
+  paymentMethod: string;
+  notes?: string | null;
+  createdAt: string;
+  patient?: {
+    id: string;
+    user?: {
+      name: string;
+      email: string;
+      phone: string;
+    };
+  };
+  items?: ShopInvoiceMedicineItem[];
+}
+
 export default function ShopInvoicesScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const shop = user?.shopProfile;
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<ShopInvoiceItem | null>(null);
   const [isSharingPdf, setIsSharingPdf] = useState(false);
 
   // Fetch bills
@@ -37,7 +67,7 @@ export default function ShopInvoicesScreen() {
     isError,
     refetch,
     isRefetching,
-  } = useQuery({
+  } = useQuery<ShopInvoiceItem[]>({
     queryKey: ['bills'],
     queryFn: async () => {
       const response = await api.get('/billing/bills');
@@ -45,22 +75,22 @@ export default function ShopInvoicesScreen() {
     },
   });
 
-  const filteredBills = bills.filter((b: any) => {
+  const filteredBills = bills.filter((b: ShopInvoiceItem) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
     const matchNumber = b.billNumber?.toLowerCase().includes(query);
     const matchPatient = b.patient?.user?.name?.toLowerCase().includes(query);
     const matchMethod = b.paymentMethod?.toLowerCase().includes(query);
-    return matchNumber || matchPatient || matchMethod;
+    return Boolean(matchNumber || matchPatient || matchMethod);
   });
 
   // Share PDF generator
-  const handleShareInvoicePdf = async (invoice: any) => {
+  const handleShareInvoicePdf = async (invoice: ShopInvoiceItem) => {
     try {
       setIsSharingPdf(true);
       const itemsHtml = (invoice.items || [])
         .map(
-          (item: any) => `
+          (item: ShopInvoiceMedicineItem) => `
           <tr>
             <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">${escapeHtml(item.medicine)}</td>
             <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 13px;">${escapeHtml(item.quantity)}</td>
@@ -262,14 +292,15 @@ export default function ShopInvoicesScreen() {
       } else {
         Alert.alert('Notice', 'PDF sharing is not available on this platform.');
       }
-    } catch (err: any) {
-      Alert.alert('Sharing Failed', err.message || 'Could not generate invoice PDF.');
+    } catch (err: unknown) {
+      const errorObj = err as Error;
+      Alert.alert('Sharing Failed', errorObj.message || 'Could not generate invoice PDF.');
     } finally {
       setIsSharingPdf(false);
     }
   };
 
-  const renderInvoiceItem = ({ item }: { item: any }) => {
+  const renderInvoiceItem = ({ item }: { item: ShopInvoiceItem }) => {
     const isCredit = item.paymentMethod === 'KHATA_CREDIT';
     const isPaid = item.paymentStatus === 'PAID';
     const formattedDate = new Date(item.createdAt).toLocaleDateString('en-IN', {
@@ -495,7 +526,7 @@ export default function ShopInvoicesScreen() {
                   </View>
 
                   <Text style={styles.modalSectionTitle}>Items Billed</Text>
-                  {selectedInvoice.items?.map((item: any, i: number) => (
+                  {selectedInvoice.items?.map((item: ShopInvoiceMedicineItem, i: number) => (
                     <View key={i} style={styles.modalItemRow}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.modalItemName}>{item.medicine}</Text>

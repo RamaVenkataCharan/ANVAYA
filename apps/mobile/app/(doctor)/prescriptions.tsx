@@ -45,10 +45,11 @@ export default function DoctorPrescriptionsScreen() {
       queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
       Alert.alert('Success', 'Prescription has been cancelled.');
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
         'Unable to cancel this prescription.';
       Alert.alert('Cancellation Failed', msg);
     },

@@ -46,7 +46,7 @@ export default function PendingVerificationScreen() {
       } else {
         setStatusMessage('Your credentials are still under review. Please check back shortly.');
       }
-    } catch (err: any) {
+    } catch (_err: unknown) {
       setStatusMessage('Failed to check status. Please check your network connection.');
     } finally {
       setIsChecking(false);

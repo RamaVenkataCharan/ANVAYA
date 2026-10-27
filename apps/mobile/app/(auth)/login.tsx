@@ -52,11 +52,15 @@ export default function LoginScreen() {
       } else {
         throw new Error('Unexpected response format from server');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const axiosErr = err as {
+        response?: { data?: { message?: string; error?: string } };
+        message?: string;
+      };
       const serverMsg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
+        axiosErr.response?.data?.message ||
+        axiosErr.response?.data?.error ||
+        axiosErr.message ||
         'Unable to log in. Please check your credentials.';
       setErrorMessage(serverMsg);
     } finally {
