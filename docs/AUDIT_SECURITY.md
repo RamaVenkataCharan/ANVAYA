@@ -183,3 +183,76 @@ Every finding below details the severity, category, affected files, exact eviden
   On `main`, there is no `NODE_ENV === 'test'` guard; if the Expo push gateway experiences timeouts or rate limits during automated jobs, the reminder loop can fail midway without completing remaining patient reminder updates.
 - **Impact:**
   Failure to deliver medicine refill notifications; transient gateway errors can leave reminders in pending state indefinitely.
+- **Remediation:**
+  Wrap individual chunk dispatch in exponential backoff retry and catch per-ticket notification delivery receipts.
+
+---
+
+### FLAG-SEC-06: Mobile Workspace TypeScript Strictness Disabled
+- **Severity:** **LOW**
+- **Category:** Code Quality / Type Safety
+- **Affected File:** [`apps/mobile/tsconfig.json`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/mobile/tsconfig.json)
+- **Evidence:**
+  Evidence from `docs/audit-evidence/ts-strictness.txt`:
+  ```
+  Workspace: apps/mobile
+  - Strict Mode: false
+  - noImplicitAny: false
+  - strictNullChecks: false
+  - Files scanned: 36 (16,066 lines)
+  - any occurrences: 44
+  ```
+- **Impact:**
+  Runtime `undefined is not an object` or null-pointer crashes on mobile client devices during critical patient checkout or prescription scanning workflows.
+- **Remediation:**
+  Enable `"strict": true` in `apps/mobile/tsconfig.json` and fix the resulting type strictness errors.
+
+---
+
+### FLAG-SEC-07: Default Development Secrets in Repository `.env`
+- **Severity:** **LOW**
+- **Category:** Credential Hygiene
+- **Affected Files:**
+  - [`apps/server/.env`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/.env)
+  - [`.env.example`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/.env.example)
+- **Evidence:**
+  Found in `docs/audit-evidence/secrets-scan-summary.txt`:
+  `DATABASE_URL="postgresql://postgres:postgrespassword@localhost:5432/anvaya?schema=public"`
+  `JWT_ACCESS_SECRET="dev_access_secret_anvaya_jwt_access_token_min_32_chars"`
+- **Impact:**
+  If a developer deploys the application with default `.env` files without overriding environment variables in production, attackers can forge JWT tokens or connect to default database ports.
+- **Remediation:**
+  Enforce a fatal startup error in `apps/server/src/config/index.ts` if `NODE_ENV === 'production'` and secrets contain known default values (`dev_`, `postgrespassword`).
+
+---
+
+### FLAG-SEC-08: Unpinned Actions & Docker Base Image Tags
+- **Severity:** **LOW**
+- **Category:** Supply-Chain Security
+- **Affected Files:**
+  - [`.github/workflows/ci.yml:38-42`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/.github/workflows/ci.yml#L38-L42)
+  - [`apps/server/Dockerfile:4`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/Dockerfile#L4)
+- **Evidence:**
+  - CI uses `actions/checkout@v4` and `actions/setup-node@v4` (major tag rather than immutable commit SHA).
+  - Dockerfile uses `node:20-alpine` (mutable tag rather than SHA digest).
+- **Impact:**
+  Upstream tag mutation or compromised action releases can inject malicious code into CI pipelines or production container images.
+- **Remediation:**
+  Pin actions to commit SHAs (e.g., `actions/checkout@b4ffde... # v4.1.1`) and Docker base images to `@sha256:...`.
+
+---
+
+## 3. Analysis of Existing Audit Evidence
+
+### 3.1 `secrets-scan.json` (Real vs. False Positives)
+- **Total Working Tree Candidates:** 87
+- **Total Git History Diff Candidates:** 87
+- **Real / Actionable Secrets Identified:** **1** (`apps/server/.env` local database credential).
+- **False Positives (86 total):**
+  - Storage key names: `anvaya_auth_token` and `anvaya_refresh_token` in `apps/mobile/services/storage.ts` (string keys, not secret values).
+  - Test fixtures: Hardcoded test passwords (`'Password123'`, `'testpass'`) in `*.test.ts` and `scripts/qa/*.ts`.
+  - Documentation snippets in `README.md`, `API.md`, and `QA_REPORT.md`.
+  - Audit scripts: regex strings in `scan-secrets.js`.
+- **Secret Redaction Compliance:** Verified. All values in `docs/audit-evidence/secrets-scan.json` and summaries are redacted (`[REDACTED]`).
+
+### 3.2 `npm-audit-root` (Reachable at Runtime vs. Build-Time)
