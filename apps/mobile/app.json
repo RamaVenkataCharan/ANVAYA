@@ -39,7 +39,8 @@
           "cameraPermission": "Allow ANVAYA to access your camera to scan prescription QR codes."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-asset"
     ],
     "scheme": "anvaya"
   }

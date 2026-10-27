@@ -35,7 +35,7 @@
   ],
   "overrides": {
     "tar": "7.5.22",
-    "react-native": "0.76.9"
+    "react-server-dom-webpack": "19.0.0"
   },
   "author": "ANVAYA Team",
   "license": "ISC"
