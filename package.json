@@ -34,7 +34,8 @@
     "pharmacy-billing"
   ],
   "overrides": {
-    "tar": "7.5.22"
+    "tar": "7.5.22",
+    "react-native": "0.76.9"
   },
   "author": "ANVAYA Team",
   "license": "ISC"

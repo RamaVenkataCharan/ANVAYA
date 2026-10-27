@@ -114,8 +114,9 @@ function RootNavigationLayout() {
   useEffect(() => {
     if (!rootNavigationState?.key || isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    const currentScreen = segments[1];
+    const segs = segments as string[];
+    const inAuthGroup = segs[0] === '(auth)';
+    const currentScreen = segs[1];
 
     if (!user) {
       // 1. Not logged in -> redirect to (auth)/login
@@ -134,7 +135,7 @@ function RootNavigationLayout() {
         }
       } else {
         // 3. Otherwise -> (doctor) | (shop) | (patient) based on role
-        if (inAuthGroup || segments.length === 0) {
+        if (inAuthGroup || segs.length === 0) {
           if (role === Role.DOCTOR) {
             router.replace('/(doctor)');
           } else if (role === Role.SHOP) {
