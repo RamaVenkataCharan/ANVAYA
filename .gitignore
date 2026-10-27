@@ -49,3 +49,10 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Audit Evidence
+docs/audit-evidence/
+.npmrc
+coverage/
+*.refresh_tokens_store.json
+
