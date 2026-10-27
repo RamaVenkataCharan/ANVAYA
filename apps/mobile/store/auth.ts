@@ -12,6 +12,7 @@ import {
   STORAGE_KEYS,
 } from '../services/storage';
 import { api } from '../services/api';
+import { clearAllCachedReports } from '../services/reportViewer';
 
 export function extractVerificationStatus(
   user: AuthenticatedUser | null
@@ -99,6 +100,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await deleteSecureItem(STORAGE_KEYS.ACCESS_TOKEN);
     await deleteSecureItem(STORAGE_KEYS.REFRESH_TOKEN);
     await deleteSecureItem(STORAGE_KEYS.USER);
+
+    // Completely wipe all cached medical documents from disk sandbox on logout
+    await clearAllCachedReports();
 
     set({
       user: null,

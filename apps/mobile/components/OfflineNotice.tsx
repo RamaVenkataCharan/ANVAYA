@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,25 @@ import { useNetworkStore } from '../store/network';
 
 export function OfflineNotice() {
   const insets = useSafeAreaInsets();
-  const { isServerReachable, isChecking, checkHealth } = useNetworkStore();
+  const {
+    isServerReachable,
+    isChecking,
+    checkHealth,
+    getNextBackoffSeconds,
+    backoffAttempt,
+  } = useNetworkStore();
+
+  // Automatic background reconnection retry with exponential backoff (5s -> 8s -> 11s -> up to 30s)
+  useEffect(() => {
+    if (isServerReachable) return;
+
+    const intervalSeconds = getNextBackoffSeconds();
+    const timer = setTimeout(() => {
+      void checkHealth();
+    }, intervalSeconds * 1000);
+
+    return () => clearTimeout(timer);
+  }, [isServerReachable, backoffAttempt, getNextBackoffSeconds, checkHealth]);
 
   if (isServerReachable) {
     return null;

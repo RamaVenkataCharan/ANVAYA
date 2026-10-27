@@ -135,7 +135,7 @@ export default function PatientRecordsScreen() {
           uri: pickedFile.uri,
           name: pickedFile.name,
           type: pickedFile.mimeType,
-        } as any);
+        } as unknown as Blob);
       }
 
       const res = await api.post('/reports/upload', formData, {

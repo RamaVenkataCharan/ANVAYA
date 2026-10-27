@@ -29,7 +29,7 @@ export function MedicineAutocomplete({
   value,
   onChangeText,
   onSelect,
-  placeholder = 'e.g. Paracetamol 650mg or Amoxicillin',
+  placeholder = 'e.g. Paracetamol or Amoxicillin',
   label = 'Medicine Name *',
   style,
   inputStyle,

@@ -18,6 +18,41 @@ export interface ReportDownloadResult {
   mimetype: string;
 }
 
+export const REPORT_CACHE_DIRECTORY = `${FileSystem.cacheDirectory}anvaya_reports/`;
+
+/**
+ * Ensures the dedicated temporary report cache directory exists
+ */
+export async function ensureReportCacheDirectory(): Promise<void> {
+  const dirInfo = await FileSystem.getInfoAsync(REPORT_CACHE_DIRECTORY);
+  if (!dirInfo.exists) {
+    await FileSystem.makeDirectoryAsync(REPORT_CACHE_DIRECTORY, { intermediates: true });
+  }
+}
+
+/**
+ * Deletes a single downloaded report file from cache once viewed or shared
+ */
+export async function deleteCachedReportFile(fileUri?: string | null): Promise<void> {
+  if (!fileUri) return;
+  try {
+    await FileSystem.deleteAsync(fileUri, { idempotent: true });
+  } catch {
+    // Ignore cleanup errors on transient cache
+  }
+}
+
+/**
+ * Completely wipes all temporary medical reports from disk (e.g. on user logout)
+ */
+export async function clearAllCachedReports(): Promise<void> {
+  try {
+    await FileSystem.deleteAsync(REPORT_CACHE_DIRECTORY, { idempotent: true });
+  } catch {
+    // Ignore cleanup errors
+  }
+}
+
 /**
  * Derives a safe filename and extension for the cached report document
  */
@@ -34,7 +69,7 @@ export function getReportLocalCacheUri(report: ViewableReport): string {
   else if (report.type === 'IMAGING') ext = '.jpg';
 
   const filename = `${report.id}_${sanitizedTitle}${sanitizedTitle.endsWith(ext) ? '' : ext}`;
-  return `${FileSystem.cacheDirectory}${filename}`;
+  return `${REPORT_CACHE_DIRECTORY}${filename}`;
 }
 
 /**
@@ -48,6 +83,8 @@ export async function downloadReportFile(
   if (!token) {
     throw new Error('Authorization required. Please log in to view reports.');
   }
+
+  await ensureReportCacheDirectory();
 
   const targetUri = getReportLocalCacheUri(report);
   const downloadUrl = `${API_BASE_URL}/reports/${report.id}/file`;

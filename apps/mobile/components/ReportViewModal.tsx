@@ -15,6 +15,7 @@ import {
   ViewableReport,
   downloadReportFile,
   shareOrOpenDocument,
+  deleteCachedReportFile,
 } from '../services/reportViewer';
 
 interface ReportViewModalProps {
@@ -31,11 +32,22 @@ export function ReportViewModal({ visible, report, onClose }: ReportViewModalPro
   const [mimeType, setMimeType] = useState('application/pdf');
 
   useEffect(() => {
+    let currentUri: string | null = null;
+
     if (visible && report) {
-      handleDownload(report);
+      void (async () => {
+        const uri = await handleDownload(report);
+        currentUri = uri;
+      })();
     } else {
       resetState();
     }
+
+    return () => {
+      if (currentUri) {
+        void deleteCachedReportFile(currentUri);
+      }
+    };
   }, [visible, report]);
 
   const resetState = () => {
@@ -46,7 +58,15 @@ export function ReportViewModal({ visible, report, onClose }: ReportViewModalPro
     setMimeType('application/pdf');
   };
 
-  const handleDownload = async (targetReport: ViewableReport) => {
+  const handleClose = async () => {
+    if (downloadedUri) {
+      await deleteCachedReportFile(downloadedUri);
+    }
+    resetState();
+    onClose();
+  };
+
+  const handleDownload = async (targetReport: ViewableReport): Promise<string | null> => {
     try {
       setLoading(true);
       setErrorMessage(null);
@@ -60,11 +80,17 @@ export function ReportViewModal({ visible, report, onClose }: ReportViewModalPro
       if (!res.isImage) {
         // Document: open native share/view sheet
         await shareOrOpenDocument(res.localUri, targetReport.title, res.mimetype);
+        // Wipe cached PDF once user finishes with share/view sheet
+        await deleteCachedReportFile(res.localUri);
+        setDownloadedUri(null);
+        return null;
       }
+      return res.localUri;
     } catch (err: unknown) {
       setLoading(false);
       const errorObj = err as Error;
       setErrorMessage(errorObj.message || 'Unable to download report. Please try again.');
+      return null;
     }
   };
 
@@ -82,7 +108,7 @@ export function ReportViewModal({ visible, report, onClose }: ReportViewModalPro
   if (!visible || !report) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={handleClose}>
       <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -94,7 +120,7 @@ export function ReportViewModal({ visible, report, onClose }: ReportViewModalPro
               {report.type ? report.type.replace(/_/g, ' ') : 'Health Report'}
             </Text>
           </View>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.7}>
             <Text style={styles.closeBtnText}>✕ Close</Text>
           </TouchableOpacity>
         </View>
@@ -126,7 +152,7 @@ export function ReportViewModal({ visible, report, onClose }: ReportViewModalPro
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionBtn, styles.dismissBtn]}
-                  onPress={onClose}
+                  onPress={handleClose}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.dismissBtnText}>Dismiss</Text>
