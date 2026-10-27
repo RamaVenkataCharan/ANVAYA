@@ -256,3 +256,52 @@ Every finding below details the severity, category, affected files, exact eviden
 - **Secret Redaction Compliance:** Verified. All values in `docs/audit-evidence/secrets-scan.json` and summaries are redacted (`[REDACTED]`).
 
 ### 3.2 `npm-audit-root` (Reachable at Runtime vs. Build-Time)
+- **`tar` (GHSA-34x7-hfp2-rc4v):** **CRITICAL**. Fixed via root `overrides: { "tar": "7.5.22" }`. Confirmed 0 critical vulnerabilities remaining.
+- **`postcss` / `@expo/metro-config` / `@expo/cli`:** **HIGH**. Build-time only. Used by Metro/Babel bundlers during mobile compilation. Never bundled or executed on the production server.
+- **`image-size`:** **HIGH**. Build-time only. Used by `@expo/cli` for asset size measurement.
+- **`node-forge`:** **HIGH**. Build-time only. Used by Metro bundler for local development HTTPS self-signed certificates.
+- **`uuid` (<11.1.1):** **MODERATE**. Server uses `uuid.v4()` (random UUID generator). The vulnerability affects v3/v5/v6 when custom pre-allocated buffers are supplied. Runtime risk is negligible.
+- **`zod` (<4.6.6):** **HIGH**. Potential memory exhaustion on unbounded constrained arrays. Server mitigates this with body-parser limits (`10mb`) and explicit length limits (`max(30)` on prescription items, `max(100)` on bill items).
+
+### 3.3 TypeScript Strictness Audit
+- `packages/shared`: **100% Strict** (strict: true, 0 any casts).
+- `apps/server`: **100% Strict** (strict: true, 0 @ts-ignore, 14 as any casts across 11,270 lines).
+- `apps/web`: **100% Strict** (strict: true, 2 as any casts across 3,517 lines).
+- `apps/mobile`: **0% Strict** (`strict: false`, `noImplicitAny: false`, `strictNullChecks: false`). Represents a major dev gap.
+
+### 3.4 Dependency Hygiene
+- Detected unused dependencies in `apps/mobile`: `@hookform/resolvers`, `date-fns`, `expo-location`, `query-string`, `react-dom`, `react-hook-form`, `react-native-is-edge-to-edge`, `react-native-svg`, `react-native-web`.
+- Lifecycle scripts verified safe: `@prisma/client`, `@prisma/engines`, and `prisma` download binaries for Prisma ORM.
+
+### 3.5 TODO Inventory
+- 18 total items (9 TEMP, 1 XXX, 8 MOCK).
+- Zero backdoors or unaddressed security TODOs in server codebase.
+
+---
+
+## 4. Manual Security & Business Logic Review
+
+Verified using [`docs/audit-evidence/route-inventory.md`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/docs/audit-evidence/route-inventory.md) across all 56 routes with automated verification script [`scripts/audit/run-manual-security-checks.js`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/scripts/audit/run-manual-security-checks.js).
+
+### 4.1 Insecure Direct Object Reference (IDOR) Matrix
+Every ID-bearing route was evaluated using 2 Patients (A and B), 2 Doctors (A and B), 2 Pharmacy Shops (A and B), and 1 Administrator:
+
+| Route Under Test | Actor Attempting Access | Target Resource | Result Status | Expected | Outcome |
+| :--- | :--- | :--- | :---: | :---: | :---: |
+| `GET /prescriptions/:id` | Unrelated Patient B | Patient A Prescription | **403 Forbidden** | 403 | **PASS** |
+| `GET /prescriptions/:id` | Unconsented Doctor B | Patient A Prescription | **403 Forbidden** | 403 | **PASS** |
+| `GET /prescriptions/:id` | Pharmacy Shop A | Patient A Prescription | **403 Forbidden** | 403 | **PASS** (Must use `/verify`) |
+| `GET /prescriptions/:id` | System Administrator | Patient A Prescription | **403 Forbidden** | 403 | **PASS** (Privacy Gate) |
+| `PATCH /prescriptions/:id/cancel` | Non-issuing Doctor B | Patient A Prescription | **403 Forbidden** | 403 | **PASS** |
+| `GET /appointments/:id` | Unrelated Patient B | Appointment A | **403 Forbidden** | 403 | **PASS** |
+| `GET /appointments/:id` | Unrelated Doctor B | Appointment A | **403 Forbidden** | 403 | **PASS** |
+| `PATCH /appointments/:id/status` | Unrelated Patient B | Appointment A Status | **403 Forbidden** | 403 | **PASS** |
+| `GET /billing/bills/:id` | Unrelated Patient B | Bill A (Patient A) | **403 Forbidden** | 403 | **PASS** |
+| `GET /billing/bills/:id` | Unrelated Shop B | Shop A Bill | **403 Forbidden** | 403 | **PASS** |
+| `GET /billing/ledger/balance/:patientId` | Unrelated Patient B | Patient A Ledger | **403 Forbidden** | 403 | **PASS** |
+| `DELETE /refills/:id` | Unrelated Patient B | Refill A | **403 Forbidden** | 403 | **PASS** |
+| `DELETE /refills/:id` | Unrelated Shop B | Shop A Refill | **403 Forbidden** | 403 | **PASS** |
+| `GET /reports/:id` | Unrelated Patient B | Patient A Report Metadata | **403 Forbidden** | 403 | **PASS** |
+| `DELETE /reports/:id` | Unrelated Patient B | Patient A Report | **403 Forbidden** | 403 | **PASS** |
+| `GET /reports/:id` | System Administrator | Patient Clinical Report | **403 Forbidden** | 403 | **PASS** (Privacy Gate) |
+
