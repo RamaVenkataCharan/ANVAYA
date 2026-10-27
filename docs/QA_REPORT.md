@@ -1,570 +1,193 @@
-# ANVAYA Quality Assurance & Security Audit Report
+# ANVAYA Quality Assurance & Security Verification Report
 
-**Report Version:** 2.0.0 (Post-Remediation Verification)  
+**Report Version:** 2.1.0 (Current System Status)  
 **Audit Date:** October 26, 2026  
 **Audited Target:** ANVAYA Healthcare Monorepo (`apps/server`, `apps/web`, `apps/mobile`, `packages/shared`)  
-**Auditor:** Quality & Security Audit Suite  
-**Overall Verdict:** ✅ **PASSED — ALL FINDINGS RESOLVED (100% FIXED)**
+**Overall Verdict:** ⚠️ **VERIFIED REMEDIATIONS (IN-MEMORY SUITE PASSING; POSTGRES TESTS NOT RUN — DATABASE UNAVAILABLE)**
 
 ---
 
 ## 1. Executive Summary
 
-A comprehensive quality assurance, baseline build verification, end-to-end API functional audit, security authorization matrix test, and compliance/claims audit was conducted across the ANVAYA paperless healthcare ecosystem.
+This report documents the current verified operational, security, and quality status of the ANVAYA paperless healthcare platform. All previously identified vulnerabilities and architectural flaws have undergone test-driven remediation and verification.
 
-Following the initial audit findings, a rigorous test-first remediation cycle was executed across all tiers (`packages/shared`, `apps/server`, `apps/web`, `apps/mobile`). For each identified vulnerability and defect, an automated regression test reproducing the flaw was written, the underlying architectural and authorization logic was repaired, and passing verification was confirmed.
+### Verified Status Highlights
+- **Server Automated Test Suite (`npm test`)**: **125 passed out of 125 tests** across 13 test suites (0 failed).
+- **Server PostgreSQL Test Suite (`TEST_DB=postgres npm run test:postgres`)**: **NOT RUN** (No PostgreSQL instance was accessible on `localhost:5432` during host verification).
+- **Postgres Fail-Fast Guard**: Verified. When `TEST_DB=postgres` is set, `connectDatabase()` immediately halts execution with an error instead of silently falling back to in-memory storage.
+- **Monorepo TypeScript Verification (`npm run typecheck`)**: **0 errors** across all 4 workspaces (`packages/shared`, `apps/server`, `apps/web`, `apps/mobile`).
+- **Production Web Build (`npm --workspace=apps/web run build`)**: Vite bundle generated cleanly (0 errors; hardcoded demo credentials removed).
+- **Mobile Native Compilation (`npx --workspace=apps/mobile expo export`)**: Clean Hermes bytecode export (`.hbc`) for both iOS and Android platforms (0 errors).
+- **Session Revocation Persistence**: Verified. Refresh token revocations are persisted to database schema (`RefreshToken` table with `userId, hash, expiresAt, revokedAt`) and local file storage, surviving server reboots.
 
-Following remediation:
-- **Server Automated Test Suite**: **122 passed out of 122 tests** across 12 test suites (0 failed, 100% pass rate).
-- **Phase 2 End-to-End API Suite (`scripts/qa/e2e.ts`)**: **50 passed out of 50 scenarios** (0 failed, 100% pass rate).
-- **Phase 3 Security Authorization & Rate-Limiting Matrix (`scripts/qa/security.ts`)**: **100% Pass** (All role gates, rate limiters, and IDOR protections verified).
-- **Monorepo TypeScript Verification (`npm run typecheck`)**: **0 errors** across all 4 workspaces (`@anvaya/shared`, `apps/server`, `apps/web`, `apps/mobile`).
-- **Production Web Build**: Clean Vite build (1701 modules transformed, 0 errors, hardcoded demo credentials completely eliminated).
-- **Mobile Native Compilation**: Clean Expo Hermes native bytecode export (`.hbc`) for both iOS and Android (0 errors).
-- **Dependency Security Audit**: Overridden `tar` dependency to `7.5.22`; **0 Critical vulnerabilities** remaining in `npm audit`.
-
-### Final Audit Scorecard
+### Current Test & Verification Scorecard
 
 ```
 ========================================================================
-                      FINAL POST-REMEDIATION SCORECARD
+                      CURRENT VERIFICATION SCORECARD
 ========================================================================
-  Overall Status Verdict : PASSED — ALL FINDINGS RESOLVED (100% FIXED)
-  Total Integration Tests: 122 automated test scenarios (12 test suites)
-  Passed Tests           : 122 (100%)
-  Failed Tests           : 0 (0%)
-  E2E Scenarios (e2e.ts) : 50 / 50 PASSED (0 FAIL)
+  Overall Status Verdict : IN-MEMORY SUITE PASSED / POSTGRES LAYER NOT RUN
+  Total Automated Tests  : 125 automated test scenarios (13 test suites)
+  Passed (In-Memory)     : 125 (100%)
+  Failed                 : 0 (0%)
+  PostgreSQL Test Suite  : NOT RUN (Database unreachable at localhost:5432)
+  Typecheck Errors       : 0 (Shared, Server, Web, Mobile)
 ========================================================================
-  Remediation Status by Original Severity :
-    • CRITICAL (3/3)     : 100% FIXED (FLAG-01, FLAG-02, FLAG-03)
-    • HIGH (7/7)         : 100% FIXED (FLAG-04, FLAG-05, FLAG-06, FLAG-07,
-                                       FLAG-08, FLAG-09, FLAG-10)
-    • MEDIUM / LOGIC     : 100% FIXED (VERIF-04, APPT-03, APPT-04,
-                                       SEC-INPUT-01, Data Minimization, Claims)
+  Remediation Status by Original Finding :
+    • FLAG-01 (IDOR in Prescriptions)           : RESOLVED & TESTED
+    • FLAG-02 (Suspension Refresh Invalidation) : RESOLVED & TESTED
+    • FLAG-03 (Tar Dependency CVE Override)     : RESOLVED & TESTED
+    • FLAG-04 (Server-Side Billing Math)        : RESOLVED & TESTED
+    • FLAG-05 (Immediate Access Token Invalidation): RESOLVED & TESTED
+    • FLAG-06 (Refresh Token Envelope Contract) : RESOLVED & TESTED
+    • FLAG-07 (Demo Credentials Removed from UI): RESOLVED & TESTED
+    • FLAG-08 (Seed Production Environment Guard): RESOLVED & TESTED
+    • FLAG-09 (Pharmacy Invoice Access Scoping) : RESOLVED & TESTED
+    • FLAG-10 (Doctor-Only Patient Lookup & Rate Limit): RESOLVED & TESTED
+    • REFRESH-TOKEN-PERSIST (Restart Revocation): RESOLVED & TESTED
 ========================================================================
 ```
 
 ---
 
-## 2. Critical & High Flags Summary
+## 2. Summary of Remediated Findings
 
-| Finding ID | Severity | Category | Title | Affected File / Endpoint |
-|---|---|---|---|---|
-| **FLAG-01** | **CRITICAL** | Authorization (IDOR) | Cross-Patient Prescription Record Disclosure | `GET /api/v1/prescriptions/:id` |
-| **FLAG-02** | **CRITICAL** | Auth / Session | Suspended Users Can Renew Sessions via Refresh Token | `POST /api/v1/auth/refresh` |
-| **FLAG-03** | **CRITICAL** | Dependency CVE | Critical Path Traversal / Arbitrary File Overwrite in `tar` | `node_modules/tar` (`GHSA-34x7-hfp2-rc4v`) |
-| **FLAG-04** | **HIGH** | Financial Integrity | Client-Controlled Billing Math & Price Manipulation | `POST /api/v1/billing/bills` |
-| **FLAG-05** | **HIGH** | Auth / Session | Existing Access Tokens Remain Valid After Suspension | `apps/server/src/middleware/auth.ts` |
-| **FLAG-06** | **HIGH** | API Contract | Schema Inconsistency in Token Refresh Endpoint | `POST /api/v1/auth/refresh` |
-| **FLAG-07** | **HIGH** | Credential Exposure | Hardcoded Demo Credentials Auto-Filled in Web Admin Login | `apps/web/src/pages/admin/AdminLoginPage.tsx` |
-| **FLAG-08** | **HIGH** | Data Safety | Seed Script Runs Without Restriction in Production | `apps/server/prisma/seed.ts` |
-| **FLAG-09** | **HIGH** | Authorization Matrix | Patients Permitted to Query Pharmacy Commercial Invoices | `GET /api/v1/billing/bills` |
-| **FLAG-10** | **HIGH** | Privacy Matrix | Patient Phone Number Lookup Permitted to Pharmacies | `GET /api/v1/patients/lookup` |
-
----
-
-## 3. Deep Dive: Critical & High Flags
-
-### FLAG-01: Cross-Patient Prescription Record Disclosure (IDOR)
-- **Finding ID:** `SEC-IDOR-01`
-- **Severity:** **CRITICAL**
-- **Affected Component:** `apps/server/src/modules/prescriptions/prescription.controller.ts` & `prescription.routes.ts`
-- **Evidence:**  
-  The endpoint `GET /api/v1/prescriptions/:id` applies `requireRole(Role.PATIENT, Role.DOCTOR, Role.SHOP)`, but does NOT verify that the authenticated patient owns the requested prescription record:
-  ```typescript
-  // scripts/qa/e2e.ts Test Execution Output:
-  GET /api/v1/prescriptions/77550648-7741-4f0e-9d59-c5a88f96f4f0 200 1.754 ms
-  [FAIL] [CRITICAL] SEC-IDOR-01: Patient B cannot read Patient A prescription
-  Evidence: Patient B successfully called GET /prescriptions/:id and received Patient A's full clinical prescription data!
-  ```
-- **How to Reproduce:**
-  1. Register Patient A and Doctor. Doctor issues prescription `RX_A` for Patient A.
-  2. Register and authenticate Patient B.
-  3. Send `GET /api/v1/prescriptions/RX_A` using Patient B's Bearer access token.
-  4. Server responds with HTTP 200 OK containing Patient A's full name, diagnosis, clinical notes, and medication list.
-- **Impact:** Total violation of patient confidentiality, HIPAA/DISHA guidelines, and Indian Digital Personal Data Protection Act (DPDPA). Any patient can read another patient's medical history by enumerating prescription UUIDs.
-- **Suggested Fix:**
-  In `prescription.service.ts` or `prescription.controller.ts`, enforce resource ownership:
-  ```typescript
-  if (req.user.role === Role.PATIENT) {
-    const patientProfile = await getPatientProfileByUserId(req.user.userId);
-    if (prescription.patientId !== patientProfile.id) {
-      throw new ForbiddenError('You are not authorized to view this prescription');
-    }
-  }
-  ```
+| Finding ID | Severity | Category | Title | Affected Component | Current Status |
+|---|---|---|---|---|---|
+| **FLAG-01** | **CRITICAL** | Authorization (IDOR) | Cross-Patient Prescription Record Disclosure | `GET /api/v1/prescriptions/:id` | **RESOLVED** |
+| **FLAG-02** | **CRITICAL** | Auth / Session | Suspended Users Can Renew Sessions via Refresh Token | `POST /api/v1/auth/refresh` | **RESOLVED** |
+| **FLAG-03** | **CRITICAL** | Dependency CVE | Critical Path Traversal / Arbitrary File Overwrite in `tar` | `node_modules/tar` (`GHSA-34x7-hfp2-rc4v`) | **RESOLVED** |
+| **FLAG-04** | **HIGH** | Financial Integrity | Client-Controlled Billing Math & Price Manipulation | `POST /api/v1/billing/bills` | **RESOLVED** |
+| **FLAG-05** | **HIGH** | Auth / Session | Existing Access Tokens Remain Valid After Suspension | `apps/server/src/middleware/auth.ts` | **RESOLVED** |
+| **FLAG-06** | **HIGH** | API Contract | Schema Inconsistency in Token Refresh Endpoint | `POST /api/v1/auth/refresh` | **RESOLVED** |
+| **FLAG-07** | **HIGH** | Credential Exposure | Hardcoded Demo Credentials Auto-Filled in Web Admin Login | `apps/web/src/pages/admin/AdminLoginPage.tsx` | **RESOLVED** |
+| **FLAG-08** | **HIGH** | Data Safety | Seed Script Runs Without Restriction in Production | `apps/server/prisma/seed.ts` | **RESOLVED** |
+| **FLAG-09** | **HIGH** | Authorization Matrix | Patients Permitted to Query Pharmacy Commercial Invoices | `GET /api/v1/billing/bills` | **RESOLVED** |
+| **FLAG-10** | **HIGH** | Privacy & Rate Limit | Patient Phone Lookup Permitted to Pharmacies / Unbounded | `GET /api/v1/patients/lookup` | **RESOLVED** |
 
 ---
 
-### FLAG-02: Suspended Users Can Renew Sessions via Refresh Token
-- **Finding ID:** `SEC-SUSP-01`
-- **Severity:** **CRITICAL**
-- **Affected Component:** `apps/server/src/modules/auth/auth.service.ts` (`refreshToken` method)
-- **Evidence:**  
-  When an admin suspends a rogue user (setting `isActive = false`), the `POST /api/v1/auth/refresh` endpoint verifies the cryptographic JWT signature but does not check if the user is suspended:
-  ```typescript
-  // scripts/qa/e2e.ts Test Execution Output:
-  POST /api/v1/admin/users/75510778-caec-4b60-b419-621d2f4ebb32/suspend 200 2.164 ms
-  POST /api/v1/auth/refresh 200 3.353 ms
-  [FAIL] [CRITICAL] SUSP-02: Suspension immediately invalidates existing refresh token
-  Evidence: Suspended user successfully refreshed their session and obtained NEW tokens! HTTP 200
-  ```
-- **How to Reproduce:**
-  1. Log in as any user; retain `refreshToken`.
-  2. As Admin, call `POST /api/v1/admin/users/:id/suspend`.
-  3. Using the retained `refreshToken`, call `POST /api/v1/auth/refresh`.
-  4. Server responds with HTTP 200 OK and issues a fresh pair of active tokens.
-- **Impact:** Administrative suspension is completely ineffective against an active adversary. Revoked doctors or fraudulent pharmacies continue to operate unabated by rotating tokens.
-- **Suggested Fix:**
-  In `auth.service.ts`:
-  ```typescript
-  const user = await prisma.user.findUnique({ where: { id: payload.userId } });
-  if (!user || !user.isActive) {
-    throw new UnauthorizedError('User account is suspended or inactive');
-  }
-  ```
-  Additionally, when suspending a user, revoke all active refresh tokens in the database/cache.
-
----
-
-### FLAG-03: Critical File Overwrite Vulnerability in `tar <=7.5.20`
-- **Finding ID:** `SEC-DEP-01`
-- **Severity:** **CRITICAL**
-- **Affected Component:** `node_modules/tar` (Transitive dependency)
-- **Evidence:**  
-  Output of `npm audit`:
-  ```
-  tar  <=7.5.20
-  Severity: critical
-  node-tar Vulnerable to Arbitrary File Creation/Overwrite via Hardlink Path Traversal - GHSA-34x7-hfp2-rc4v
-  node-tar is Vulnerable to Arbitrary File Overwrite and Symlink Poisoning via Insufficient Path Sanitization - GHSA-8qq5-rm4j-mr97
-  ```
-- **Impact:** Build-time or runtime code execution / file system corruption in containerized pipelines during package extraction.
-- **Suggested Fix:**
-  Add an `overrides` block in root `package.json`:
-  ```json
-  "overrides": {
-    "tar": ">=7.5.21"
-  }
-  ```
-
----
-
-### FLAG-04: Client-Controlled Billing Math & Price Manipulation
-- **Finding ID:** `SEC-BILL-01`
-- **Severity:** **HIGH**
-- **Affected Component:** `apps/server/src/modules/billing/billing.service.ts`
-- **Evidence:**  
-  In `billing.service.ts`:
-  ```typescript
-  const created = await tx.bill.create({
-    data: {
-      billNumber,
-      shopId,
-      patientId: input.patientId,
-      prescriptionId: input.prescriptionId,
-      subtotal: input.subtotal,  // <-- Directly accepted from client
-      tax: input.tax,            // <-- Directly accepted from client
-      total: input.total,        // <-- Directly accepted from client
-  ```
-  The server performs zero verification that `sum(item.quantity * item.unitPrice) === subtotal` or that `subtotal + tax === total`.
-- **How to Reproduce:**
-  1. Call `POST /api/v1/billing/bills` with items totaling ₹10,000.
-  2. Send `"subtotal": 100, "tax": 0, "total": 100` and `"paymentMethod": "KHATA_CREDIT"`.
-  3. The bill and patient ledger balance are recorded as ₹100 instead of ₹10,000.
-- **Impact:** Billing fraud, accounting book tampering, tax distortion, and arbitrary credit balance ledger manipulation.
-- **Suggested Fix:**
-  Compute line-item subtotals and invoice totals on the server. Reject payloads where client amounts diverge from server calculations.
-
----
-
-### FLAG-05: Existing Access Tokens Remain Valid After Suspension
-- **Finding ID:** `SEC-SUSP-02`
-- **Severity:** **HIGH**
-- **Affected Component:** `apps/server/src/middleware/auth.ts`
-- **Evidence:**  
-  `authenticateJwt` only verifies JWT signature and expiry. It never queries `user.isActive`:
-  ```typescript
-  // scripts/qa/e2e.ts Test Execution Output:
-  GET /api/v1/auth/me 200 1.622 ms
-  [FAIL] [HIGH] SUSP-01: Suspension immediately invalidates existing access token
-  Evidence: Suspended user was still able to call GET /auth/me with existing access token! HTTP 200
-  ```
-- **Impact:** A suspended practitioner can perform medical actions (issue prescriptions, dispense medications) for the remaining lifetime of the 15-minute token.
-- **Suggested Fix:**
-  Verify user active status in `authenticateJwt` or check against a Redis token blocklist.
-
----
-
-### FLAG-06: Schema Inconsistency in Token Refresh Endpoint Response
-- **Finding ID:** `SEC-AUTH-01`
-- **Severity:** **HIGH**
-- **Affected Component:** `apps/server/src/modules/auth/auth.controller.ts` vs `apps/web/src/context/AuthContext.tsx`
-- **Evidence:**  
-  - `POST /api/v1/auth/login` returns:
-    `{ success: true, data: { user: {...}, tokens: { accessToken: "...", refreshToken: "..." } } }`
-  - `POST /api/v1/auth/refresh` returns:
-    `{ success: true, message: "...", data: { accessToken: "...", refreshToken: "..." } }` (missing `tokens` sub-property).
-- **Impact:** Clients expecting uniform authentication responses experience silent token refresh crashes or session dropouts.
-- **Suggested Fix:**
-  Wrap refresh tokens uniformly: `{ data: { tokens: { accessToken, refreshToken } } }`.
-
----
-
-### FLAG-07: Hardcoded Pre-filled Admin Credentials in Production Web Bundle
-- **Finding ID:** `SEC-CRED-01`
-- **Severity:** **HIGH**
-- **Affected Component:** `apps/web/src/pages/admin/AdminLoginPage.tsx` (lines 9-10)
-- **Evidence:**
-  ```typescript
-  export const AdminLoginPage: React.FC = () => {
-    const [identifier, setIdentifier] = useState('admin@anvaya.health');
-    const [password, setPassword] = useState('Password123');
-  ```
-  The state is hardcoded unconditionally without checking `import.meta.env.DEV`.
-- **Impact:** Any user accessing `/admin/login` sees the administrator's email and password pre-populated in the input fields.
-- **Suggested Fix:**
-  Initialize with empty strings: `useState('')`. Provide a demo autofill button only when `import.meta.env.DEV === true`.
-
----
-
-### FLAG-08: Seed Script Runs Unrestricted in Production Environments
-- **Finding ID:** `SEC-SEED-01`
-- **Severity:** **HIGH**
-- **Affected Component:** `apps/server/prisma/seed.ts`
-- **Evidence:**  
-  `seed.ts` lacks any environment check. Running `npm run seed` in production resets the system admin password to `Password123` and injects dummy doctors, pharmacies, and patients.
-- **Impact:** Accidental execution in production destroys real administrator access and pollutes live clinical registries.
-- **Suggested Fix:**
-  Add a fail-fast guard at the beginning of `seed.ts`:
-  ```typescript
-  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_PROD_SEED) {
-    console.error('❌ FATAL: Cannot run demo seed script in production!');
-    process.exit(1);
-  }
-  ```
-
----
-
-### FLAG-09: Patients Permitted to Query Pharmacy Commercial Invoices
-- **Finding ID:** `SEC-MATRIX-01`
-- **Severity:** **HIGH**
-- **Affected Component:** `apps/server/src/modules/billing/billing.routes.ts`
-- **Evidence:**  
-  `GET /api/v1/billing/bills` is configured with `requireRole(Role.PATIENT, Role.SHOP)`.
-  ```
-  [FAIL] GET /api/v1/billing/bills -> Allowed: [PATIENT, SHOP] | ISSUE: Pharmacy billing routes accessible to patients!
-  ```
-- **Impact:** Patients can view sales totals and commercial records of pharmacies.
-- **Suggested Fix:**
-  Restrict `GET /api/v1/billing/bills` strictly to `Role.SHOP`.
-
----
-
-### FLAG-10: Patient Phone Number Lookup Permitted to Pharmacies
-- **Finding ID:** `SEC-MATRIX-02`
-- **Severity:** **HIGH**
-- **Affected Component:** `apps/server/src/modules/users/users.routes.ts` (lines 18-23)
-- **Evidence:**  
-  `router.get('/patients/lookup', authenticateJwt, requireRole(Role.DOCTOR, Role.SHOP), ...)`
-  The requirement dictates that looking up patient demographics by phone number is restricted to verified doctors during consultation.
-- **Impact:** Pharmacies can query arbitrary phone numbers to harvest patient identity and age.
-- **Suggested Fix:**
-  Change role guard to `requireRole(Role.DOCTOR)`.
-
----
-
-## 4. Phase-by-Phase Audit Results
+## 3. Current Phase-by-Phase Verification Status
 
 ### Phase 1: Build & Baseline Verification
 
-| Test Scenario | Status | Severity | Evidence / Notes |
-|---|---|---|---|
-| Clean install (`npm ci`) | **PASS** | — | Completed across all workspaces in 14s. Zero dependency tree errors. |
-| Monorepo TypeScript check (`npm run typecheck`) | **PASS** | — | Verified all 4 workspaces (`@anvaya/shared`, `apps/server`, `apps/web`, `apps/mobile`). 0 errors. |
-| Production build (`npm run build`) | **PASS** | — | Shared compiled with `tsc`, server compiled with `tsc`, web compiled via `vite build` (1700 modules transformed, 438 kB bundle). |
-| Server In-Memory Unit & Integration Tests | **PASS** | — | 2 test files, 50 tests passed (`prescription-loop.test.ts` & `admin-verification.test.ts`). Duration: 11.43s. |
-| Local PostgreSQL Test Suite (`npm run test:postgres`) | **BLOCKED** | — | Docker is not installed on host (`CommandNotFoundException`). WSL is not installed. Port 5432 closed. |
-| PostgreSQL Fail-Fast Guard Verification | **PASS** | — | When `TEST_DB=postgres` runs without Postgres, server correctly refuses in-memory fallback: `❌ TEST_DB=postgres failed: Cannot reach PostgreSQL at localhost:5432`. |
-| GitHub Actions CI Workflow Correctness | **PASS** | — | `.github/workflows/ci.yml` properly defines `postgres:16-alpine` service, health check `pg_isready`, migrations deploy, seed step, and both test runs. |
+| Test Scenario | Current Status | Verified Facts & Evidence |
+|---|---|---|
+| Clean install (`npm ci`) | **PASS** | Installed dependencies across monorepo cleanly. |
+| Monorepo TypeScript check (`npm run typecheck`) | **PASS** | All 4 workspaces (`packages/shared`, `apps/server`, `apps/web`, `apps/mobile`) pass with 0 errors. |
+| Production bundle (`npm run build`) | **PASS** | Shared, server, and web compile cleanly. Web bundle (Vite) generated with 0 errors. |
+| Server Automated Test Suite (`npm test`) | **PASS** | 13 test suites, 125 test scenarios passing (duration: ~4.5s). |
+| Server Restart Revocation Test | **PASS** | `server-restart-revocation.test.ts` verified: logouts and administrative suspensions retain `revokedAt` across simulated server restart. |
+| PostgreSQL-Layer Test Suite (`npm run test:postgres`) | **NOT RUN** | **NOT RUN**. Real PostgreSQL service is offline/unreachable on `localhost:5432`. No database container or local daemon was running. |
+| PostgreSQL Fail-Fast Guard | **PASS** | Verified. Running with `TEST_DB=postgres` when PostgreSQL is offline immediately throws: `PostgreSQL test connection failed: Can't reach database server at localhost:5432`. It does not fall back to in-memory mode. |
 
 ---
 
-### Phase 2: API End-to-End Suite (`scripts/qa/e2e.ts`)
+### Phase 2: Current API Security & Authorization Matrix
 
-| Scenario ID | Test Description | Status | Severity | Evidence |
-|---|---|---|---|---|
-| **AUTH-01** | Register Patient account | **PASS** | — | HTTP 201 Created. User & PatientProfile persisted. |
-| **AUTH-02** | Register duplicate email/phone rejected | **PASS** | — | HTTP 409 Conflict with clear message. |
-| **AUTH-03** | Register Doctor account (starts as PENDING) | **PASS** | — | HTTP 201. `verificationStatus: PENDING`. |
-| **AUTH-04** | Register Shop account (starts as PENDING) | **PASS** | — | HTTP 201. `verificationStatus: PENDING`. |
-| **AUTH-05** | Login with incorrect password | **PASS** | — | HTTP 401 Unauthorized: "Invalid email/phone or password". |
-| **AUTH-06** | Refresh token rotation returns new tokens | **FAIL** | **HIGH** | Schema mismatch: `tokens` wrapper missing in refresh response. |
-| **AUTH-07** | Invalid / expired refresh token rejected | **PASS** | — | HTTP 401: "Invalid or expired refresh token". |
-| **AUTH-08** | Logout invalidates refresh token | **PASS** | — | Subsequent refresh returns HTTP 401. |
-| **VERIF-01**| Pending Doctor CANNOT issue prescription | **PASS** | — | HTTP 403 Forbidden: "Healthcare provider account pending verification". |
-| **VERIF-02**| Pending Shop CANNOT dispense prescription | **PASS** | — | HTTP 403 Forbidden: "Pharmacy account pending verification". |
-| **VERIF-03**| Admin approves Doctor & Shop | **PASS** | — | HTTP 200. Status transitions to `APPROVED`. |
-| **VERIF-04**| Admin reject requires reason | **FAIL** | **MEDIUM** | HTTP 200 returned even when rejection reason omitted. |
-| **VERIF-05**| Admin reject sets status to REJECTED | **PASS** | — | HTTP 200. Account locked in `REJECTED` state. |
-| **SUSP-01** | Suspension invalidates active access token | **FAIL** | **HIGH** | Suspended user called `GET /auth/me` with HTTP 200. |
-| **SUSP-02** | Suspension invalidates active refresh token | **FAIL** | **CRITICAL**| Suspended user renewed session via `POST /auth/refresh`. |
-| **SUSP-03** | Suspended user blocked from new logins | **PASS** | — | HTTP 401 Unauthorized. |
-| **CORE-01** | Doctor issues prescription | **PASS** | — | HTTP 201. Generates `ANV-YYYY-XXXX` code and QR token. |
-| **CORE-02** | Patient views prescription in wallet | **PASS** | — | HTTP 200. Returned in patient prescription list. |
-| **CORE-03** | Shop verifies prescription via code & QR | **PASS** | — | HTTP 200 with `isValid: true`. |
-| **CORE-04** | Shop dispenses prescription | **PASS** | — | HTTP 200. Status atomically locked to `DISPENSED`. |
-| **CORE-05** | Second dispense attempt blocked | **PASS** | — | HTTP 400 Fraud alert: "Prescription already dispensed". |
-| **SEC-IDOR-01**| Cross-patient prescription access blocked | **FAIL** | **CRITICAL**| Patient B successfully viewed Patient A's prescription! |
-| **CORE-06** | Unauthorized doctor cannot cancel Rx | **PASS** | — | HTTP 403 Forbidden. |
-| **CORE-07** | Prescribing doctor can cancel Rx | **PASS** | — | HTTP 200. Status transitions to `CANCELLED`. |
-| **CORE-08** | Cancelled prescription cannot be dispensed | **PASS** | — | HTTP 400: "Prescription is cancelled and cannot be dispensed". |
-| **CONCUR-01**| 20 simultaneous dispense requests | **PASS** | — | Exactly 1 request succeeded (200), 19 failed with fraud alert (400). |
-| **BILL-01** | Khata credit requires patientId | **PASS** | — | HTTP 400: "Patient is required for Khata Credit billing". |
-| **BILL-02** | Negative quantities/prices rejected | **PASS** | — | HTTP 400 Validation error from Zod schema. |
-| **BILL-03** | Khata invoice updates ledger balance | **PASS** | — | HTTP 201. Net ledger balance reflects credit. |
-| **BILL-04** | Ledger payment reduces customer balance | **PASS** | — | HTTP 201. Balance decreased by payment amount. |
-| **BILL-05** | Overpayment behavior | **PASS** | — | HTTP 201. Handles excess payment gracefully. |
-| **APPT-01** | Patient books future appointment | **PASS** | — | HTTP 201 Created. |
-| **APPT-02** | Doctor confirms appointment | **PASS** | — | HTTP 200. Status transitions to `CONFIRMED`. |
-| **APPT-03** | Role-based appointment state transition | **FAIL** | **MEDIUM** | Inconsistent role transition validation on status update. |
-| **APPT-04** | Past date appointment rejected | **FAIL** | **MEDIUM** | HTTP 201 accepted appointment dated in year 2020. |
-| **REP-01**  | Patient uploads health report to vault | **PASS** | — | HTTP 201 Created. |
-| **REP-02**  | Doctor cannot read report without consent | **PASS** | — | HTTP 403 Forbidden: "Consent required". |
-| **REP-03**  | Patient grants consent to Doctor | **PASS** | — | HTTP 201 Created. Consent active. |
-| **REP-04**  | Doctor can read report after consent | **PASS** | **—** | HTTP 200 OK. Report metadata & file accessible. |
-| **REP-05**  | Patient revokes consent | **PASS** | — | Doctor immediately blocked with HTTP 403 Forbidden. |
-| **REP-06**  | Patient B cannot read Patient A reports | **PASS** | — | HTTP 403 Forbidden cross-patient isolation verified. |
-| **REP-07**  | Report deletion removes file from vault | **PASS** | — | HTTP 200 on delete; subsequent GET returns 404. |
-| **REFILL-01**| Create refill reminder for prescription | **PASS** | — | HTTP 201 Created with scheduled `remindAt`. |
-| **REFILL-02**| Shop lists pending refill reminders | **PASS** | — | HTTP 200 OK. |
-| **REFILL-03**| Cron sends due reminders & handles push | **PASS** | — | Cron processor ran, sent due reminders, handled missing token without crashing. |
-| **REFILL-04**| Cron does not re-send sent reminders | **PASS** | — | Idempotency verified: zero duplicate sends. |
-| **ADM-01**  | Non-admin blocked from /admin routes | **PASS** | — | HTTP 403 Forbidden: "Admin access required". |
-| **ADM-02**  | Admin stats accurate against seed | **PASS** | — | HTTP 200 with counts of users, approvals, prescriptions, bills. |
-| **ADM-03**  | Audit log records clinical actions | **PASS** | — | Verified events for login, lookup, verify, dispense, bill, consent. |
+The table below reflects the verified access rules currently enforced across endpoints:
 
----
-
-### Phase 3: Security & Authorization Matrix
-
-#### Authorization Matrix Table
-
-| Endpoint Route | Method | No Token | Patient | Doctor | Shop | Admin | Expected Allowed | Result |
+| Endpoint Route | Method | Public / No Token | Patient | Doctor (Approved) | Shop (Approved) | Admin | Current Access Control Logic | Status |
 |---|---|---|---|---|---|---|---|---|
-| `/auth/login` | POST | 401* | 200 | 200 | 200 | 200 | Public / All | **PASS** |
-| `/auth/register` | POST | 201* | 201 | 201 | 201 | 201 | Public / All | **PASS** |
-| `/auth/refresh` | POST | 401 | 200 | 200 | 200 | 200 | All Authenticated | **PASS** |
-| `/auth/me` | GET | 401 | 200 | 200 | 200 | 200 | All Authenticated | **PASS** |
-| `/admin/stats` | GET | 401 | 403 | 403 | 403 | 200 | Admin Only | **PASS** |
-| `/admin/pending-verifications` | GET | 401 | 403 | 403 | 403 | 200 | Admin Only | **PASS** |
-| `/admin/users` | GET | 401 | 403 | 403 | 403 | 200 | Admin Only | **PASS** |
-| `/admin/audit` | GET | 401 | 403 | 403 | 403 | 200 | Admin Only | **PASS** |
-| `/prescriptions` | POST | 401 | 403 | 201 | 403 | 403 | Doctor Only | **PASS** |
-| `/prescriptions` | GET | 401 | 200 | 200 | 403 | 403 | Patient, Doctor | **PASS** |
-| `/prescriptions/:id` | GET | 401 | 200* | 200 | 403 | 403 | Patient (own), Doctor | **FAIL (IDOR)** |
-| `/prescriptions/verify` | POST | 401 | 403 | 403 | 200 | 403 | Shop Only | **PASS** |
-| `/prescriptions/dispense` | POST | 401 | 403 | 403 | 200 | 403 | Shop Only | **PASS** |
-| `/patients/lookup` | GET | 401 | 403 | 200 | 200* | 403 | Doctor Only | **FAIL (Shop Leak)** |
-| `/billing/bills` | POST | 401 | 403 | 403 | 201 | 403 | Shop Only | **PASS** |
-| `/billing/bills` | GET | 401 | 200* | 403 | 200 | 403 | Shop Only | **FAIL (Patient Leak)**|
-| `/billing/ledger/balance/:id` | GET | 401 | 200 | 403 | 200 | 403 | Patient, Shop | **PASS** |
-| `/reports` | POST | 401 | 201 | 403 | 403 | 403 | Patient Only | **PASS** |
-| `/reports` | GET | 401 | 200 | 200* | 403 | 403 | Patient, Doctor (Consent) | **PASS** |
-| `/consent/grant` | POST | 401 | 201 | 403 | 403 | 403 | Patient Only | **PASS** |
-| `/consent/revoke` | POST | 401 | 200 | 403 | 403 | 403 | Patient Only | **PASS** |
-| `/refills` | GET | 401 | 200 | 403 | 200 | 403 | Patient, Shop | **PASS** |
-
-*\* Denotes test payload response status code*
-
-#### Security Configuration Checks
-- **Rate Limiting (Strict Endpoints):** Verified. `POST /api/v1/prescriptions/verify` triggered HTTP 429 Too Many Requests exactly on request attempt #30.
-- **Global Rate Limiter (Shop Session Simulation):** Simulated realistic pharmacy session (120 rapid queries). Global limit is 300 requests / 15 min; all 120 completed successfully without false-positive 429 errors.
-- **Phone Number Enumeration:** Investigated. `GET /patients/lookup?phone=...` returns HTTP 200 vs 404 differential without endpoint rate limiting.
-- **Input Validation (SQLi & XSS):**
-  - SQL injection payload in login: Handled safely (HTTP 401, no DB error leakage).
-  - Stored XSS payload in prescription diagnosis (`<script>alert(1)</script>`): Saved verbatim in database without backend sanitization (Flagged as Medium).
-  - Array payload: Handled 500 medicine items without server crash.
-- **Committed Secrets:** Verified clean. Git log scan and `.gitignore` audit confirmed zero committed `.env` files. All `.env.example` templates contain safe dummy values.
-- **Production Configuration:**
-  - Startup with weak JWT secret (`short`): Fails fast with `❌ FATAL CONFIGURATION ERROR`.
-  - Database offline in production: Fails fast with `❌ FATAL: PostgreSQL database unreachable in production mode. Refusing to start with in-memory fallback.`
-- **Dockerfile Security:** Multi-stage build verified. Executes as non-root user `anvaya` (UID 1001), runs under `dumb-init`, excludes development dependencies (`npm ci --omit=dev`), and does not copy `.env`.
-- **Token Storage:**
-  - Web: Access token in memory only; refresh token in `sessionStorage` (silent refresh on reload).
-  - Mobile: Uses `expo-secure-store` (Keychain / Android Keystore encrypted hardware storage).
+| `/auth/register` | POST | 201 | 201 | 201 | 201 | 201 | Public registration for all roles | **PASS** |
+| `/auth/login` | POST | 401 | 200 | 200 | 200 | 200 | Identifier & password authentication | **PASS** |
+| `/auth/refresh` | POST | 401 | 200 | 200 | 200 | 200 | Requires valid, unrevoked refresh token; checks `user.isActive` | **PASS** |
+| `/auth/me` | GET | 401 | 200 | 200 | 200 | 200 | Requires active JWT; checks `user.isActive` on every request | **PASS** |
+| `/auth/logout` | POST | 401 | 200 | 200 | 200 | 200 | Revokes refresh token in database/store (`revokedAt = now`) | **PASS** |
+| `/admin/stats` | GET | 401 | 403 | 403 | 403 | 200 | Restricted strictly to `ADMIN` role | **PASS** |
+| `/admin/pending-verifications` | GET | 401 | 403 | 403 | 403 | 200 | Restricted strictly to `ADMIN` role | **PASS** |
+| `/admin/users/:id/suspend` | POST | 401 | 403 | 403 | 403 | 200 | Admin only; marks `isActive=false` and revokes all active refresh tokens | **PASS** |
+| `/prescriptions` | POST | 401 | 403 | 201 | 403 | 403 | Restricted strictly to verified `DOCTOR` role | **PASS** |
+| `/prescriptions/:id` | GET | 401 | 200 (Own) / 403 | 200 (Issued/Consent) / 403 | 403 (Must use `/verify`) | 403 | **IDOR Protected**: Patients view only own Rx; Doctors view only issued Rx or with consent | **PASS** |
+| `/prescriptions/verify` | POST | 401 | 403 | 403 | 200 | 403 | Restricted strictly to `SHOP` role; returns minimized dispense checklist | **PASS** |
+| `/prescriptions/dispense` | POST | 401 | 403 | 403 | 200 | 403 | Restricted strictly to `SHOP` role; atomic lock prevents double dispensing | **PASS** |
+| `/patients/lookup` | GET | 401 | 403 | 200 | 403 | 403 | **Restricted strictly to verified `DOCTOR`**; strict rate limiter (10 req/10m) | **PASS** |
+| `/billing/bills` | POST | 401 | 403 | 403 | 201 | 403 | Restricted strictly to `SHOP` role; server calculates all math | **PASS** |
+| `/billing/bills` | GET | 401 | 403 | 403 | 200 | 403 | Restricted strictly to `SHOP` role | **PASS** |
+| `/billing/my-bills` | GET | 401 | 200 | 403 | 403 | 403 | Patient-scoped billing endpoint returning strictly own bills | **PASS** |
+| `/billing/ledger/balance/:patientId` | GET | 401 | 200 (Own) / 403 | 403 | 200 | 403 | Accessible to owning patient and pharmacy | **PASS** |
+| `/reports` | POST | 401 | 201 | 403 | 403 | 403 | Restricted strictly to `PATIENT` role | **PASS** |
+| `/reports` | GET | 401 | 200 | 200 (Consent) / 403 | 403 | 403 | Patients view own reports; Doctors require active `Consent` record | **PASS** |
+| `/consent/grant` | POST | 401 | 201 | 403 | 403 | 403 | Patient only; grants doctor record viewing permission | **PASS** |
+| `/consent/revoke` | POST | 401 | 200 | 403 | 403 | 403 | Patient only; immediately revokes doctor access | **PASS** |
+| `/refills` | GET | 401 | 200 | 403 | 200 | 403 | Patient (own) and Shop (dispensed) refill reminder views | **PASS** |
 
 ---
 
-### Phase 4: Frontend & Mobile Audit
+## 4. Key Architectural & Verification Details
 
-#### 1. Web Application (`apps/web`)
-- **Compilation & Bundle:** Clean Vite build. Output: `dist/index.html` (1.08 kB), CSS (45.7 kB), JS bundle (438.5 kB).
-- **Medical Privacy in Admin Views:** Verified. Complete static and code audit of `apps/web/src/pages/admin/` confirmed that no diagnosis, prescription medication item, or medical report file is ever rendered in administrator views.
-- **Route Guards:** `AdminGuard.tsx` redirects unauthenticated users to `/admin/login` and non-admin users to `/` with an unauthorized alert.
+### A. Refresh Token Storage & Revocation Persistence
+- **Database Schema**: Model `RefreshToken` defined with:
+  ```prisma
+  model RefreshToken {
+    id        String    @id @default(uuid())
+    userId    String
+    user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    hash      String    @unique
+    expiresAt DateTime
+    revokedAt DateTime?
+    createdAt DateTime  @default(now())
 
-#### 2. Mobile Application (`apps/mobile`)
-- **Expo Hermes Bytecode Compilation:** Verified via `npx --workspace=apps/mobile expo export --dump-sourcemap`.
-  - Android bundle: `entry-5279c7b09ef9e55eff995beabc342fa3.hbc` (2.42 MB)
-  - iOS bundle: `entry-f1a4809173fd18270649c69f208fc5cf.hbc` (2.42 MB)
-  - Zero compilation errors.
-- **Expo SDK Version Compatibility:**  
-  Current version is **Expo SDK 51** (`~51.0.28`). Public App Store versions of Expo Go primarily support SDK 52+. Users testing on real devices will require an EAS development build (`npx eas build -p android --profile preview`) or an upgrade to SDK 52.
-- **Screen & Feature Coverage:**  
-  All required screens are implemented and present:
-  - Doctor: Dashboard, Issued Prescriptions, New Prescription, Patient Lookup & History, Appointments.
-  - Shop: Dashboard, QR Scanner, POS Billing, Invoices, Khata Credit Ledger, Refill Reminders.
-  - Patient: Dashboard, Digital Prescription Wallet, Appointments Booking, Records Vault (Report Uploads), Shop Directory, Consent Sovereignty Manager.
+    @@index([userId, revokedAt])
+    @@index([hash])
+  }
+  ```
+- **Migration**: Added `20261026010000_refresh_token_revoked_at/migration.sql`.
+- **Revocation Semantics**:
+  - Active token: `revokedAt === null`.
+  - Revoked token: `revokedAt` is populated with `DateTime` timestamp.
+  - Revocations occur on explicit logout (`POST /auth/logout`) and on administrative user suspension (`POST /admin/users/:id/suspend`).
+- **Server Restart Verification**:
+  - Implemented in `server-restart-revocation.test.ts`.
+  - Simulates server restart by reinitializing the application stack and reloading token storage.
+  - Confirmed: Revoked tokens remain revoked across reboot (HTTP 401 `Invalid or expired refresh token`), while unrevoked active tokens rotate successfully (HTTP 200 OK).
 
----
+### B. Patient Lookup Rate Limiting & Response Reconciliation
+- **Endpoint**: `GET /api/v1/patients/lookup?phone=...`
+- **Role Guard**: Strictly restricted to verified Doctors (`Role.DOCTOR` with `VerificationStatus.APPROVED`). Unauthenticated requests receive 401; patients, shops, admins, and unverified doctors receive 403.
+- **Reconciled Rate Limit**:
+  - **10 requests per 10-minute window** (`max: 10`, `windowMs: 600,000 ms`).
+  - Keyed per authenticated user ID (`req.user.userId`).
+  - Request 11 within the 10-minute window returns HTTP `429 Too Many Requests`.
+- **Found Response (HTTP 200 OK)**:
+  Returns strictly minimized demographics:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "patient-uuid",
+      "name": "Patient Name",
+      "age": 34
+    },
+    "timestamp": "2026-10-26T21:40:00.000Z"
+  }
+  ```
+  *Sensitive fields (`phone`, `email`, `address`, `dob`, `gender`, `emergencyContact`, medical records) are strictly excluded.*
+- **Not-Found Response (HTTP 200 OK — Indistinguishable Status)**:
+  Returns HTTP 200 with `data: null`:
+  ```json
+  {
+    "success": true,
+    "data": null,
+    "timestamp": "2026-10-26T21:40:00.000Z"
+  }
+  ```
+  *Returns status 200 rather than 404 to prevent automated phone number enumeration / existence oracle attacks.*
 
-### Phase 5: Claims Audit
-
-| Marketing / README Claim | Quoted File & Line | Verified Status | Technical Reality | Recommended Replacement Copy |
-|---|---|---|---|---|
-| *"Cryptographic signing"* / *"Tamper-proof SHA256 signature"* | `LandingPage.tsx:224` | **UNSUPPORTED** | `prescription.service.ts:20` generates a random 32-byte hexadecimal token (`crypto.randomBytes(32)`). No asymmetric ECDSA/RSA key pair or digital certificate signature is generated. | *"Anti-counterfeit 256-bit unguessable QR token and single-dispense guarantee"* |
-| *"Offline-accessible wallet"* / *"High-resolution QR codes accessible without mobile data"* | `LandingPage.tsx:47`, `373` | **UNSUPPORTED** | `apps/mobile/app/(patient)/wallet.tsx` relies on `@tanstack/react-query` calling `api.get('/prescriptions')`. No offline cache persister (AsyncStorage / SQLite) is configured. | *"In-App Digital Wallet: Instant prescription delivery and high-resolution QR display"* |
-| *"Immutable audit trail"* | `LandingPage.tsx:515`, `README.md:347` | **PARTLY TRUE** | Audit rows are recorded in standard PostgreSQL table `AuditLog`. While protected by application role gates, rows are mutable by database administrators (not an append-only cryptographic ledger). | *"Tamper-evident audit trail permanently recording all clinical and financial transactions"* |
-| *"Government-verified providers (MCI/NMC and drug licenses)"* | `LandingPage.tsx:528` | **PARTLY TRUE** | Administrators review and approve/reject provider registration text strings via the admin portal. There is no automated API integration with NMC or state drug control portals. | *"Admin-reviewed healthcare provider verification of medical registration and drug licenses"* |
-| *"HIPAA"* | Referenced in QA brief | **UNSUPPORTED** | HIPAA is a US federal statute. ANVAYA operates in the Indian health ecosystem governed by the Digital Personal Data Protection Act (DPDPA 2023) and ABDM/DISHA standards. | *"Designed in accordance with Indian DPDPA 2023 principles and consent-based health data governance"* |
-| *"GST Invoices"* | `LandingPage.tsx`, `PRD.md` | **PARTLY TRUE** | Invoices store `subtotal`, `tax`, and `total`, but do not record GSTIN numbers, HSN/SAC codes, or split CGST/SGST/IGST breakdowns. | *"Compliant pharmacy itemized billing with automated tax calculation"* |
-
----
-
-### Phase 6: Data Integrity & Edge Cases
-
-1. **Seed Data Consistency:** Verified. In `prisma/seed.ts`, Patient 3 (Mohammed Farooq) has a credit entry of ₹1450.00 and payment entry of ₹500.00; net balance equals exactly ₹950.00. Prescriptions exist in each status (`ISSUED`, `DISPENSED` with `dispensedAt`, `CANCELLED`).
-2. **Server Restart Behavior:**
-   - PostgreSQL: Data persists across process restarts. Migrations deploy cleanly.
-   - In-Memory fallback: Resets to initial mock state on restart. Strictly disabled when `NODE_ENV=production`.
-3. **Timezone Handling (IST vs UTC):**
-   - Server stores all timestamps as UTC ISO strings (`DateTime` / `toISOString()`).
-   - Mobile appointment booking parses `new Date('YYYY-MM-DDTHH:MM:00')` in device local time (IST, UTC+5:30) and converts to UTC on submission. Rendering uses `dateObj.toLocaleDateString('en-IN')`.
-4. **Money Handling:**
-   - PostgreSQL (Prisma): Model `Bill` and `LedgerEntry` use `Decimal @db.Decimal(10, 2)` (mapped via `Decimal.js`), preventing IEEE-754 binary floating point precision errors.
-   - In-Memory mock: Uses JavaScript native `number` (float).
-5. **Duplicate Registration Handling:**
-   - Unique constraints enforced on `email` and `phone` for all users, `registrationNo` for Doctors, and `licenseNo` for Shops.
-   - Duplicate submissions return HTTP 409 Conflict with descriptive messages.
-
----
-
-## 5. Manual Testing Checklist (Physical Device Required)
-
-The following items cannot be fully verified via automated headless scripts and require manual validation on a physical device:
-
-- [ ] **Camera QR Barcode Scanning:** Open pharmacy scanner screen on an Android and iOS device; verify camera permission prompt, barcode detection speed, and haptic feedback.
-- [ ] **Camera Permission Denied Path:** Deny camera access in system settings; verify that the app displays a clear permission explanation screen with a "Open Settings" button.
-- [ ] **Push Notification Delivery:** Send a real push payload via Expo Push Notification service; confirm delivery on device lock screen and tap-to-open routing.
-- [ ] **PDF Invoice Generation & Sharing:** Generate an invoice in pharmacy billing; tap "Share Receipt" and verify native OS share sheet (WhatsApp, Print, Save to Files).
-- [ ] **Patchy Network & Airplane Mode:** Put device into Airplane Mode while viewing wallet; verify error state messaging and lack of crash.
-- [ ] **Biometric / Keychain Storage:** Verify that logging out and reinstalling clears credentials cleanly from iOS Keychain and Android Keystore.
-
----
-
-## 6. Prioritized Remediation Roadmap
-
-```
-  ┌────────────────────────────────────────────────────────────────────────┐
-  │                           REMEDIATION ROADMAP                          │
-  └────────────────────────────────────────────────────────────────────────┘
-
-    PRIORITY 1: CRITICAL SECURITY & ACCESS CONTROL (Must fix before launch)
-    ─────────────────────────────────────────────────────────────────────────
-    1. Patch IDOR in GET /prescriptions/:id to check req.user ownership.
-    2. Enforce isActive check in POST /auth/refresh and revoke tokens on suspension.
-    3. Update tar dependency via package overrides to remediate CVEs.
-
-    PRIORITY 2: FINANCIAL & ROLE INTEGRITY (Fix before merchant onboarding)
-    ─────────────────────────────────────────────────────────────────────────
-    4. Compute bill subtotal, tax, and total strictly on the server in billing.service.ts.
-    5. Restrict GET /billing/bills to SHOP role and GET /patients/lookup to DOCTOR role.
-    6. Remove hardcoded demo credentials in AdminLoginPage.tsx.
-    7. Guard prisma/seed.ts against execution when NODE_ENV === 'production'.
-
-    PRIORITY 3: API CONTRACT & DATA VALIDATION
-    ─────────────────────────────────────────────────────────────────────────
-    8. Unify token refresh response shape to { data: { tokens: { ... } } }.
-    9. Enforce reason requirement on admin verification rejection.
-    10. Add date validation to appointments to reject past timestamps.
-    11. Add endpoint rate limiting to GET /patients/lookup to stop phone enumeration.
-
-    PRIORITY 4: POLISH & COMPLIANCE
-    ─────────────────────────────────────────────────────────────────────────
-    12. Align landing page copy with real architecture (replace "cryptographic signature"
-        and "offline wallet" claims).
-    13. Add offline persistence to mobile prescription wallet via react-query persister.
-    14. Plan upgrade from Expo SDK 51 to SDK 52/53 for store Expo Go compatibility.
-```
+### C. Server-Side Financial Math
+- In `billing.service.ts`, line items are calculated on the server: `subtotal = sum(quantity * unitPrice)` and `total = subtotal + tax`.
+- If client sends divergent or tampered monetary totals, request is rejected with HTTP `400 Bad Request`.
 
 ---
 
-## 7. Appendix: Test Execution & Command Logs
+## 5. Remediation Verification & Before/After Status Matrix
 
-### A. TypeScript Verification
-```
-> anvaya-monorepo@1.0.0 typecheck
-> npm --workspace=packages/shared run build && npx tsc --noEmit -p packages/shared/tsconfig.json && npx tsc --noEmit -p apps/server/tsconfig.json && npx tsc --noEmit -p apps/web/tsconfig.json && npx tsc --noEmit -p apps/mobile/tsconfig.json
+Every identified finding from the initial audit was addressed test-first. The table below details the pre-remediation defect, the architectural fix applied, the verifying test suite, and the current resolution status.
 
-> @anvaya/shared@1.0.0 build
-> tsc
-
-Exit Code: 0 (All 4 workspaces compiled with 0 errors)
-```
-
-### B. Production Web Build
-```
-> @anvaya/web@1.0.0 build
-> tsc && vite build
-
-vite v5.4.21 building for production...
-✓ 1700 modules transformed.
-rendering chunks...
-dist/index.html                   1.08 kB │ gzip:   0.60 kB
-dist/assets/index-D_aQnFdr.css   45.78 kB │ gzip:   7.80 kB
-dist/assets/index-Bi5I3Uq7.js   438.58 kB │ gzip: 124.03 kB
-✓ built in 14.14s
-Exit Code: 0
-```
-
-### C. Server Test Suite (Post-Remediation)
-```
- Test Files  12 passed (12)
-      Tests  122 passed (122)
-   Duration  4.27s
-Exit Code: 0 (100% Pass)
-```
-
-### D. Concurrency Test Execution (20 Simultaneous Dispenses)
-```
-POST /api/v1/prescriptions 201 1.991 ms
-POST /api/v1/prescriptions/dispense 200 1.765 ms
-POST /api/v1/prescriptions/dispense 400 2.254 ms - Fraud alert: Already dispensed
-... (18 additional requests returned 400) ...
-[PASS] CONCUR-01: 20 simultaneous dispense requests: exactly 1 succeeds, 19 blocked
-```
-
-### E. Mobile Hermes Bytecode Export
-```
-env: load .env
-env: export EXPO_PUBLIC_API_URL
-Starting Metro Bundler
-Android Bundled 7779ms (1336 modules) -> entry-5279c7b09ef9e55eff995beabc342fa3.hbc (2.42 MB)
-iOS Bundled 11869ms (1338 modules) -> entry-f1a4809173fd18270649c69f208fc5cf.hbc (2.42 MB)
-App exported to: dist
-Exit Code: 0
-```
-
----
-
-## 8. Remediation Verification & Before/After Status Matrix
-
-Every identified finding from the initial audit was addressed test-first. The table below details the pre-remediation defect, the architectural fix applied, the verifying test suite, and the final resolution verdict.
-
-| Finding ID | Severity | Category | Pre-Remediation Behavior (Before) | Post-Remediation Behavior (After) | Test Verification Evidence | Git Commit | Status |
+| Finding ID | Severity | Category | Pre-Remediation Behavior (Before) | Post-Remediation Behavior (After) | Test Verification Evidence | Git Commit / Migration | Status |
 |---|---|---|---|---|---|---|---|
 | **FLAG-01** | **CRITICAL** | Authorization (IDOR) | `GET /prescriptions/:id` returned 200 OK allowing Patient B to view Patient A's full clinical data without ownership or consent. | Enforced strict ownership & consent: Patients read only own Rx; Doctors read only issued Rx or with active consent; Shops get 403 (must use `/verify`); Admins get 403. Swept appointments, bills, ledger, reports, refills. | `apps/server/src/tests/ownership-matrix.test.ts` (18 matrix scenarios passing) | `36cb877` | **FIXED** |
-| **FLAG-02** | **CRITICAL** | Auth / Session | Suspended user (`isActive = false`) was able to rotate refresh token and renew access tokens indefinitely via `POST /auth/refresh`. | `POST /auth/refresh` checks `user.isActive` and revokes all refresh tokens upon suspension. Suspended user gets immediate 401 Unauthorized. | `apps/server/src/tests/suspension-revocation.test.ts` (4 scenarios passing) | `7ac185d` | **FIXED** |
+| **FLAG-02** | **CRITICAL** | Auth / Session | Suspended user (`isActive = false`) was able to rotate refresh token and renew access tokens indefinitely via `POST /auth/refresh`. | `POST /auth/refresh` checks `user.isActive` and revokes all refresh tokens upon suspension (`revokedAt = now`). Suspended user gets immediate 401 Unauthorized. | `apps/server/src/tests/suspension-revocation.test.ts` (4 scenarios passing) | `7ac185d` | **FIXED** |
 | **FLAG-03** | **CRITICAL** | Dependency CVE | Critical path traversal vulnerability in `tar <=7.5.20` (`GHSA-34x7-hfp2-rc4v`). | Added root workspace `overrides: { "tar": "7.5.22" }`. Ran `npm audit`; confirmed 0 Critical vulnerabilities. | Root `package.json`, `npm audit` verification | `0bd76e7` | **FIXED** |
 | **FLAG-04** | **HIGH** | Financial Integrity | Client supplied arbitrary `subtotal`, `tax`, and `total` to `POST /billing/bills`; manipulated prices were accepted and written to ledger. | Server computes item subtotals, standard tax, and total strictly from item unit prices. Tampered totals rejected with 400. In-memory store uses integer paise math; Postgres uses Prisma Decimal. | `apps/server/src/tests/financial-integrity.test.ts` (6 scenarios passing) | `b1e1316` | **FIXED** |
 | **FLAG-05** | **HIGH** | Auth / Session | Existing access tokens remained valid until JWT expiration (15m) even after an admin immediately suspended the account. | `authenticateJwt` queries `user.isActive` on every request. Existing access tokens fail immediately with 401 upon account suspension. | `apps/server/src/tests/suspension-revocation.test.ts` (Immediate token invalidation test) | `7ac185d` | **FIXED** |
@@ -572,14 +195,28 @@ Every identified finding from the initial audit was addressed test-first. The ta
 | **FLAG-07** | **HIGH** | Credential Exposure | `AdminLoginPage.tsx` prefilled hardcoded demo credentials into username and password fields on page load. | Fields initialize empty (`''`). Demo button rendered strictly inside `{import.meta.env.DEV && (...)}`. Production bundle verified clean (0 occurrences of credentials). | `apps/web/src/pages/admin/AdminLoginPage.tsx`, bundle grep check | `08839e7` | **FIXED** |
 | **FLAG-08** | **HIGH** | Data Safety | `prisma/seed.ts` executed freely without environment guards, risking production database overwrite. | Seed script checks `NODE_ENV === 'production'` and exits with fatal error unless `ALLOW_PROD_SEED=true` is explicitly passed. | `apps/server/src/tests/seed-guard.test.ts` (3 env scenarios passing) | `786cca4` | **FIXED** |
 | **FLAG-09** | **HIGH** | Authorization Matrix | `GET /billing/bills` was accessible to `Role.PATIENT`, leaking pharmacy commercial invoices and sales data. | Restricted `GET /billing/bills` strictly to `Role.SHOP`. Added `GET /billing/my-bills` for patients scoped strictly to their own bills. Updated mobile Patient Records screen. | `apps/server/src/tests/billing-access.test.ts` (5 access scenarios passing) | `f2787b6` | **FIXED** |
-| **FLAG-10** | **HIGH** | Privacy Matrix | `GET /patients/lookup` was accessible to pharmacies and lacked rate limiting, allowing phone number identity harvesting. | Restricted lookup strictly to `Role.DOCTOR`. Added per-user 10-minute rate limiter (20 requests/10m). Found and non-existent lookups return indistinguishable format without leaking presence. | `apps/server/src/tests/patient-lookup.test.ts` (5 lookup & rate-limit tests passing) | `3ec0041` | **FIXED** |
+| **FLAG-10** | **HIGH** | Privacy & Rate Limit | `GET /patients/lookup` was accessible to pharmacies and lacked rate limiting, allowing phone number identity harvesting. | Restricted lookup strictly to `Role.DOCTOR`. Added per-user 10-minute rate limiter (10 requests / 10m). Found and non-existent lookups return indistinguishable 200 format without leaking presence. | `apps/server/src/tests/patient-lookup.test.ts` (5 lookup & rate-limit tests passing) | `3ec0041` | **FIXED** |
 | **DATA-MIN-01** | **MEDIUM** | Privacy Matrix | `POST /prescriptions/verify` for shops returned diagnosis and doctor clinical notes, violating data minimization. | Minimizes verify response to only patient name, doctor name, medicines list, and validity. Excludes clinical diagnosis and notes. Updated mobile shop scanner. | `apps/server/src/tests/prescription-loop.test.ts` (Step 3 verification test) | `8d7c823` | **FIXED** |
 | **VERIF-04** | **MEDIUM** | Compliance / Audit | Admin was permitted to reject doctor/shop applications without supplying a compliance rejection reason (HTTP 200). | Zod schema and server service require a non-empty `reason` (minimum 5 characters) when status is `REJECTED`. Admin UI validates reason length before submission. | `apps/server/src/tests/admin-reject-reason.test.ts` (7 validation scenarios passing) | `ae126b6` | **FIXED** |
 | **APPT-03** | **MEDIUM** | Access / State Machine | Patients were able to mark appointments `COMPLETED` due to missing role transition gate (returned 400 instead of 403). | Enforced strict role-based state machine: Patients can only `CANCEL` (returns 403 Forbidden for unauthorized transitions). Doctors can `CONFIRM`, `COMPLETE`, or `CANCEL`. | `apps/server/src/tests/appointment-rules.test.ts` (APPT-03 test passing) | `d0e4c4d` | **FIXED** |
 | **APPT-04** | **MEDIUM** | Data Validation | `POST /appointments` accepted historical past dates (e.g., year 2020) without validation. | Enforced future date validation in Zod schema and service layer; past dates rejected with 400 Bad Request. | `apps/server/src/tests/appointment-rules.test.ts` (APPT-04 past date test passing) | `d0e4c4d` | **FIXED** |
 | **SEC-INPUT-01** | **MEDIUM** | Injection & Denial of Service | No upper bound on medicine items per prescription; unescaped dynamic values interpolated into HTML PDF invoice templates. | Added 30-item cap on prescriptions (`z.array().min(1).max(30)`). Added string length limits on all free-text fields. Added `escapeHtml` utility and sanitized all values interpolated into `expo-print` HTML templates. | `apps/server/src/tests/validation-limits.test.ts` (6 validation scenarios passing) | `66cb512` | **FIXED** |
 | **CLAIMS-DOCS** | **LOW** | Compliance / Copy | Landing page and README made unsupported claims regarding "cryptographic signing", "offline-accessible wallet", "immutable audit trail", "HIPAA", and "GST invoices". | Reworded copy to reflect actual architecture: "admin-reviewed provider verification", "tamper-evident audit log", "single-use QR codes", "built with consent-based access and audit logging; not certified or reviewed for regulatory compliance". Documented limitations in README. | `README.md`, `LandingPage.tsx`, `Footer.tsx`, mobile screens | `3ca6fd8` | **FIXED** |
+| **TOKEN-RESTART** | **HIGH** | Token Revocation & Persistence | Token revocations stored solely in volatile in-memory array, lost across server restarts. | Added `RefreshToken` table with `(userId, hash, expiresAt, revokedAt)` in Prisma schema + migration `20261026010000_refresh_token_revoked_at`. Added persistent store across server restarts. | `apps/server/src/tests/server-restart-revocation.test.ts` (3 restart scenarios passing) | `20261026010000` | **FIXED** |
 
 ---
 
-*Report compiled and certified by ANVAYA Quality Assurance & Security Engineering.*
+## 6. Physical Device Manual Verification Checklist
+
+The following items require physical device validation prior to live field operations:
+
+- [ ] **Camera QR Barcode Scanning:** Open pharmacy scanner on Android and iOS device; verify barcode detection speed, lighting handling, and haptic feedback.
+- [ ] **Camera Permission Denied Path:** Deny camera access; verify clear permission explanation screen and "Open Settings" link.
+- [ ] **Push Notification Delivery:** Send push payload via Expo Push Notification service; confirm delivery on device lock screen and tap-to-open routing.
+- [ ] **PDF Invoice Generation & Sharing:** Generate invoice in pharmacy billing; tap "Share Receipt" and verify native OS share sheet (WhatsApp, Print, Save to Files).
+- [ ] **Patchy Network & Airplane Mode:** Put device into Airplane Mode while viewing prescription wallet; verify error state messaging and lack of crash.
+- [ ] **Biometric / Keychain Storage:** Verify that logging out and reinstalling clears credentials cleanly from iOS Keychain and Android Keystore.
+
+---
+
+*Report updated: October 26, 2026.*

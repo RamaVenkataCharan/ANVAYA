@@ -59,7 +59,9 @@ export async function processDueRefillReminders(now: Date = new Date()): Promise
       try {
         const chunks = expo.chunkPushNotifications(messages);
         for (const chunk of chunks) {
-          await expo.sendPushNotificationsAsync(chunk);
+          if (process.env.NODE_ENV !== 'test') {
+            await expo.sendPushNotificationsAsync(chunk);
+          }
         }
       } catch (pushError) {
         console.warn('Error sending expo push notifications:', pushError);
@@ -113,7 +115,9 @@ export async function processDueRefillReminders(now: Date = new Date()): Promise
       try {
         const chunks = expo.chunkPushNotifications(messages);
         for (const chunk of chunks) {
-          await expo.sendPushNotificationsAsync(chunk);
+          if (process.env.NODE_ENV !== 'test') {
+            await expo.sendPushNotificationsAsync(chunk);
+          }
         }
       } catch (pushError) {
         console.warn('Error sending in-memory expo push notifications:', pushError);

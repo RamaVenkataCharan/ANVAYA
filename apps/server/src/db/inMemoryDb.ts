@@ -1,6 +1,13 @@
 import { Role, VerificationStatus, PrescriptionStatus, AppointmentStatus, PaymentStatus, LedgerType, ReportType } from '@anvaya/shared';
 import { hashPasswordSync } from '../utils/password';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+
+const getStorePath = () => {
+  const workerSuffix = process.env.VITEST_WORKER_ID ? `_${process.env.VITEST_WORKER_ID}` : '';
+  return path.resolve(__dirname, `../../.refresh_tokens_store${workerSuffix}.json`);
+};
 
 export interface DbUser {
   id: string;
@@ -177,9 +184,9 @@ export interface DbAuditLog {
 export interface DbRefreshToken {
   id: string;
   userId: string;
-  tokenHash: string;
+  hash: string;
   expiresAt: Date;
-  revoked: boolean;
+  revokedAt: Date | null;
   createdAt: Date;
 }
 
@@ -204,6 +211,53 @@ class InMemoryDatabase {
 
   constructor() {
     this.seed();
+    this.loadPersistedRefreshTokens();
+  }
+
+  loadPersistedRefreshTokens(): void {
+    try {
+      const storePath = getStorePath();
+      if (fs.existsSync(storePath)) {
+        const data = JSON.parse(fs.readFileSync(storePath, 'utf-8'));
+        if (Array.isArray(data)) {
+          this.refreshTokens = data.map((t: any) => ({
+            id: t.id,
+            userId: t.userId,
+            hash: t.hash,
+            expiresAt: new Date(t.expiresAt),
+            revokedAt: t.revokedAt ? new Date(t.revokedAt) : null,
+            createdAt: new Date(t.createdAt),
+          }));
+        }
+      }
+    } catch {
+      // Ignore reading issues on initialization
+    }
+  }
+
+  persistRefreshTokens(): void {
+    try {
+      const storePath = getStorePath();
+      fs.writeFileSync(
+        storePath,
+        JSON.stringify(this.refreshTokens, null, 2),
+        'utf-8'
+      );
+    } catch {
+      // Ignore writing issues
+    }
+  }
+
+  clearPersistedRefreshTokens(): void {
+    try {
+      const storePath = getStorePath();
+      if (fs.existsSync(storePath)) {
+        fs.unlinkSync(storePath);
+      }
+    } catch {
+      // Ignore unlink issues
+    }
+    this.refreshTokens = [];
   }
 
   seed() {

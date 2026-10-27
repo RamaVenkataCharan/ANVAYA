@@ -328,10 +328,10 @@ export class AuthService {
 
     if (isDbConnected()) {
       const tokenRecord = await prisma.refreshToken.findUnique({
-        where: { tokenHash },
+        where: { hash: tokenHash },
       });
 
-      if (!tokenRecord || tokenRecord.revoked || tokenRecord.expiresAt < new Date()) {
+      if (!tokenRecord || tokenRecord.revokedAt || tokenRecord.expiresAt < new Date()) {
         throw new UnauthorizedError('Invalid or expired refresh token');
       }
 
@@ -346,11 +346,11 @@ export class AuthService {
 
       await prisma.refreshToken.update({
         where: { id: tokenRecord.id },
-        data: { revoked: true },
+        data: { revokedAt: new Date() },
       });
     } else {
-      const tokenRecord = inMemoryDb.refreshTokens.find((t) => t.tokenHash === tokenHash);
-      if (!tokenRecord || tokenRecord.revoked || tokenRecord.expiresAt < new Date()) {
+      const tokenRecord = inMemoryDb.refreshTokens.find((t) => t.hash === tokenHash);
+      if (!tokenRecord || tokenRecord.revokedAt || tokenRecord.expiresAt < new Date()) {
         throw new UnauthorizedError('Invalid or expired refresh token');
       }
 
@@ -359,7 +359,8 @@ export class AuthService {
         throw new UnauthorizedError('Your account has been deactivated. Please contact support.');
       }
 
-      tokenRecord.revoked = true;
+      tokenRecord.revokedAt = new Date();
+      inMemoryDb.persistRefreshTokens();
     }
 
     const user = await this.getMe(userId);
@@ -385,15 +386,16 @@ export class AuthService {
       const tokenHash = hashToken(refreshTokenRaw);
       if (isDbConnected()) {
         await prisma.refreshToken.updateMany({
-          where: { tokenHash },
-          data: { revoked: true },
+          where: { hash: tokenHash, revokedAt: null },
+          data: { revokedAt: new Date() },
         });
       } else {
         inMemoryDb.refreshTokens
-          .filter((t) => t.tokenHash === tokenHash)
+          .filter((t) => t.hash === tokenHash && !t.revokedAt)
           .forEach((t) => {
-            t.revoked = true;
+            t.revokedAt = new Date();
           });
+        inMemoryDb.persistRefreshTokens();
       }
     }
 
@@ -508,7 +510,7 @@ export class AuthService {
       await prisma.refreshToken.create({
         data: {
           userId: user.id,
-          tokenHash,
+          hash: tokenHash,
           expiresAt,
         },
       });
@@ -516,11 +518,12 @@ export class AuthService {
       inMemoryDb.refreshTokens.push({
         id: crypto.randomUUID(),
         userId: user.id,
-        tokenHash,
+        hash: tokenHash,
         expiresAt,
-        revoked: false,
+        revokedAt: null,
         createdAt: new Date(),
       });
+      inMemoryDb.persistRefreshTokens();
     }
 
     return { accessToken, refreshToken };

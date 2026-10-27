@@ -36,6 +36,9 @@ web-build/
 # Prisma
 apps/server/prisma/*.db
 apps/server/prisma/*.db-journal
+*.refresh_tokens_store*.json
+apps/server/.refresh_tokens_store*.json
+.refresh_tokens_store*.json
 
 # OS / Editor
 .DS_Store
@@ -49,3 +52,9 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Audit Evidence & Test Artifacts
+docs/audit-evidence/
+.npmrc
+coverage/
+apps/server/coverage/

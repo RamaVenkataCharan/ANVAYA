@@ -99,6 +99,15 @@ ANVAYA utilizes **PostgreSQL** orchestrated with **Prisma ORM**. The database is
   - Resource type & ID
   - IP Address, User Agent, and JSON metadata.
 
+### 3.10 `RefreshToken`
+- Persistent session storage linked 1:N to `User`:
+  - `id`: UUID primary key.
+  - `userId`: Foreign key referencing `User(id)`.
+  - `hash`: SHA-256 cryptographic digest of raw refresh token (Unique).
+  - `expiresAt`: Absolute expiration timestamp (7-day validity).
+  - `revokedAt`: Nullable revocation timestamp (`null` for active tokens, set upon logout or user account suspension).
+  - Preserves token revocations permanently across server restarts.
+
 ---
 
 ## 4. Key Performance Indexes
@@ -109,3 +118,4 @@ ANVAYA utilizes **PostgreSQL** orchestrated with **Prisma ORM**. The database is
 - `Appointment(doctorId, dateTime)`, `Appointment(patientId, dateTime)`
 - `Consent(patientId, isActive)`, `Consent(doctorId, isActive)`
 - `AuditLog(userId, createdAt)`, `AuditLog(action)`
+- `RefreshToken(userId, revokedAt)`, `RefreshToken(hash)`

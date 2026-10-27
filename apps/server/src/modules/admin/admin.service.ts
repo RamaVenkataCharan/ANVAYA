@@ -563,8 +563,8 @@ export class AdminService {
 
       if (!isActive) {
         await prisma.refreshToken.updateMany({
-          where: { userId, revoked: false },
-          data: { revoked: true },
+          where: { userId, revokedAt: null },
+          data: { revokedAt: new Date() },
         });
       }
 
@@ -591,10 +591,11 @@ export class AdminService {
 
       if (!isActive) {
         inMemoryDb.refreshTokens
-          .filter((t) => t.userId === userId)
+          .filter((t) => t.userId === userId && !t.revokedAt)
           .forEach((t) => {
-            t.revoked = true;
+            t.revokedAt = new Date();
           });
+        inMemoryDb.persistRefreshTokens();
       }
 
       recordAuditLog({

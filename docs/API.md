@@ -179,3 +179,41 @@ Returns full profile of a specific verified pharmacy.
 
 ### `GET /doctors`
 Returns list of verified doctors (with optional `?specialization=` filter).
+
+---
+
+## 5. Patient Lookup & Demographics
+
+### `GET /patients/lookup`
+*(Strictly restricted to verified DOCTOR role; unverified doctors, shops, patients, and admins receive `403 Forbidden`)*
+
+Quickly look up a registered patient by exact phone number (`?phone=...`) for prescription issuance while strictly enforcing data minimization and anti-enumeration protections.
+
+**Rate Limiting:**
+- **10 requests per 10-minute window** (`max: 10`, `windowMs: 600,000 ms`), tracked per authenticated user ID (or client IP).
+- Requests exceeding 10 within the 10-minute window receive HTTP `429 Too Many Requests`.
+
+**Found Response (HTTP 200 OK):**
+Returns only minimized demographics required for consultation (`id`, `name`, and calculated `age`). Does NOT expose phone, email, address, date of birth, gender, emergency contacts, or clinical records.
+```json
+{
+  "success": true,
+  "data": {
+    "id": "e2222222-2222-2222-2222-222222222222",
+    "name": "Ramesh Varma",
+    "age": 36
+  },
+  "timestamp": "2026-10-26T21:40:00.000Z"
+}
+```
+
+**Not-Found Response (HTTP 200 OK — Indistinguishable Status):**
+Returns HTTP `200 OK` with `data: null` instead of HTTP 404 to prevent phone number existence enumeration attacks.
+```json
+{
+  "success": true,
+  "data": null,
+  "timestamp": "2026-10-26T21:40:00.000Z"
+}
+```
+*Note: An audit log entry (`PATIENT_LOOKUP`) is recorded for every lookup attempt, regardless of whether a record was found.*
