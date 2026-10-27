@@ -362,3 +362,54 @@ graph TD
         F2[FLAG-SEC-02: Migrate RefreshToken Table to Postgres Schema]
     end
     
+    subgraph P2[Phase 2: Input & File Storage Hardening]
+        F3[FLAG-SEC-03: Add Multer fileFilter Middleware]
+        F4[FLAG-SEC-04: Implement Magic Byte Verification]
+        F5[FLAG-SEC-05: Add Expo Push Chunk Retry & Backoff]
+    end
+    
+    subgraph P3[Phase 3: Client Strictness & Operations]
+        F6[FLAG-SEC-06: Enable Strict Mode in Mobile tsconfig]
+        F7[FLAG-SEC-07: Add Production Default Credential Guard]
+        F8[FLAG-SEC-08: Pin CI Actions and Base Docker Digests]
+    end
+```
+
+---
+
+## 8. Backlog of Actionable Remediation Tasks
+
+### Task 1: Enable Express Trust Proxy and Key Rate Limiters by User
+- **Target File:** [`apps/server/src/app.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/app.ts)
+- **Description:** Add `app.set('trust proxy', config.isProduction ? 1 : false);`. Update `/prescriptions/verify` limiter to track per-authenticated shop user ID where available.
+- **Acceptance Criteria:**
+  - `app.get('trust proxy')` returns true/1 in production mode.
+  - Rate limiting correctly identifies remote IP behind `X-Forwarded-For`.
+  - Automated test confirms proxy headers are respected without bypass.
+
+### Task 2: Migrate `RefreshToken` Model to Prisma Schema
+- **Target Files:**
+  - [`apps/server/prisma/schema.prisma`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/prisma/schema.prisma)
+  - [`apps/server/src/modules/auth/auth.service.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/auth/auth.service.ts)
+- **Description:** Add `RefreshToken` model with `userId, hash, expiresAt, revokedAt` fields. Update `AuthService` to query and persist refresh tokens in database.
+- **Acceptance Criteria:**
+  - Running `npx prisma migrate dev` generates migration without drift.
+  - Server restart revocation test (`server-restart-revocation.test.ts`) passes consistently.
+
+### Task 3: Add Multer `fileFilter` for Report Uploads
+- **Target File:** [`apps/server/src/modules/reports/report.routes.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/reports/report.routes.ts)
+- **Description:** Implement `fileFilter` in Multer configuration rejecting non-whitelisted MIME types (`application/pdf`, `image/jpeg`, `image/png`).
+- **Acceptance Criteria:**
+  - Uploading `.exe` or text file to `POST /reports/upload` returns HTTP 400 Bad Request before file buffer is allocated.
+
+### Task 4: Add File Magic Byte Inspection
+- **Target File:** [`apps/server/src/services/storage/localStorage.service.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/services/storage/localStorage.service.ts)
+- **Description:** Check first 4 bytes of uploaded file buffers to verify PDF (`%PDF`), JPEG (`FF D8 FF`), and PNG (`89 50 4E 47`) headers.
+- **Acceptance Criteria:**
+  - HTML or executable file disguised as `.pdf` is rejected with HTTP 400.
+
+### Task 5: Enable Strict Mode in Mobile `tsconfig.json`
+- **Target File:** [`apps/mobile/tsconfig.json`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/mobile/tsconfig.json)
+- **Description:** Enable `"strict": true`, `"noImplicitAny": true`, `"strictNullChecks": true` and resolve any implicit `any` errors.
+- **Acceptance Criteria:**
+  - `npx tsc --noEmit -p apps/mobile/tsconfig.json` passes with 0 errors under strict mode.
