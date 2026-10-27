@@ -145,3 +145,121 @@ An independent engineering audit was conducted across the ANVAYA paperless healt
 
 ---
 
+### FLAG-DEV-04: Engine Divergence Between In-Memory and PostgreSQL Implementations
+- **Severity:** **MEDIUM**
+- **Category:** Architectural Integrity / Data Types / Concurrency
+- **Affected Files:**
+  - [`apps/server/src/modules/billing/billing.service.ts:96-175`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/billing/billing.service.ts#L96-L175)
+  - [`apps/server/src/modules/prescriptions/prescription.service.ts:415-508`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/prescriptions/prescription.service.ts#L415-L508)
+  - [`apps/server/prisma/schema.prisma`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/prisma/schema.prisma)
+  - [`apps/server/src/db/inMemoryDb.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/db/inMemoryDb.ts)
+- **Evidence:**
+  1. **Bill Number Generation:**
+     In PostgreSQL mode (`billing.service.ts:127`):
+     ```typescript
+     const billNumber = `INV-${new Date().getFullYear()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+     ```
+     In in-memory mode (`billing.service.ts:98`):
+     ```typescript
+     const seq = String(inMemoryDb.bills.length + 1).padStart(4, '0');
+     return `INV-${year}-${seq}`;
+     ```
+  2. **Decimal Serialization:** In PostgreSQL, monetary fields (`total`, `subtotal`, `tax`, `unitPrice`) are Prisma `Decimal` instances (`@db.Decimal(10, 2)`). In `inMemoryDb`, they are plain JavaScript `number` primitives. Clients receiving JSON from Prisma get string-serialized decimals or require explicit conversions.
+  3. **Foreign Key Integrity:** `inMemoryDb` does not enforce `onDelete: Restrict`. In-memory tests deleting entities succeed where PostgreSQL would throw foreign key constraint violations (`P2003`).
+  4. **Multi-Instance Concurrency:** In-memory mode relies on Node.js single-threaded event loop. In a scaled deployment with multiple server instances, in-memory state is isolated per instance, leading to state corruption and split-brain dispensing if in-memory mode is used.
+- **Impact:**
+  Behaviors verified in local testing and QA reports do not faithfully replicate production PostgreSQL behaviors.
+- **Remediation:**
+  Deprecate `inMemoryDb` as a primary runtime engine. Adopt SQLite via Prisma for zero-config local development, or mandate a local PostgreSQL container, ensuring a single code path exists for all database queries.
+
+---
+
+### FLAG-DEV-05: Missing Clinical Prescription Amendment & Voiding Lifecycle
+- **Severity:** **MEDIUM**
+- **Category:** Clinical Workflow / Regulatory Compliance
+- **Affected Files:**
+  - [`apps/server/src/modules/prescriptions/prescription.service.ts:514-550`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/prescriptions/prescription.service.ts#L514-L550)
+  - [`apps/mobile/app/(doctor)/new-prescription.tsx`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/mobile/app/%28doctor%29/new-prescription.tsx)
+- **Evidence:**
+  `PrescriptionService` provides only:
+  - `createPrescription`: Creates prescription in `ISSUED` state.
+  - `cancelPrescription`: Marks prescription `CANCELLED` (only before dispensing).
+  - `dispensePrescription`: Transitions `ISSUED` -> `DISPENSED`.
+  There is no mechanism for a physician to:
+  - Correct a typographical error in medicine dosage or duration prior to dispensing.
+  - Issue an amendment or addendum with a change log.
+  - Revoke a prescription after an emergency drug interaction warning.
+- **Impact:**
+  If a doctor miskeys a dosage (e.g., 500mg instead of 50mg), the only remedy is cancelling the entire prescription and instructing the patient to discard the QR code, which confuses patients and medical shops.
+- **Remediation:**
+  Add a prescription versioning workflow:
+  - Allow `POST /prescriptions/:id/amend` which voids the original with an audit reason and issues a linked revision (`revisionOfId: string`).
+
+---
+
+### FLAG-DEV-06: Monolithic Single-Shop Architecture & Lack of Standard Drug Catalog
+- **Severity:** **MEDIUM**
+- **Category:** Commercial Architecture / Data Standardization
+- **Affected Files:**
+  - [`apps/server/prisma/schema.prisma:104-125`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/prisma/schema.prisma#L104-L125)
+  - [`apps/server/src/modules/billing/billing.service.ts:25-95`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/billing/billing.service.ts#L25-L95)
+- **Evidence:**
+  1. **Single Branch Model:** In `schema.prisma`, `Shop` is tied 1:1 to `User`. There is no `Organization` or `Branch` model. Pharmacy chains (e.g., MedPlus, Apollo) cannot operate multiple outlets or transfer inventory across locations.
+  2. **Unvalidated Drug Names:** Both `PrescriptionItem.medicine` and `BillItem.medicine` accept arbitrary free-text strings without validation against an approved formulary (e.g., CDSCO/FDA dictionary, RxNorm). Typographical errors in drug names prevent automated drug-interaction checking and refill reminder matching.
+- **Impact:**
+  Platform cannot scale to multi-store pharmacy enterprises, and lack of formulary standard impedes interoperability with external healthcare exchanges (e.g., ABDM - Ayushman Bharat Digital Mission).
+- **Remediation:**
+  1. Introduce `Organization` entity with 1:N `ShopBranch` relations.
+  2. Seed a standard CDSCO essential medicines dictionary and provide autocomplete endpoints (`GET /catalog/medicines?query=...`).
+
+---
+
+### FLAG-DEV-07: Health Check Readiness Deficit & Missing Observability Stack
+- **Severity:** **LOW**
+- **Category:** DevOps / Site Reliability / Observability
+- **Affected Files:**
+  - [`apps/server/src/routes.ts:16-32`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/routes.ts#L16-L32)
+  - [`apps/server/src/app.ts:47-50`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/app.ts#L47-L50)
+- **Evidence:**
+  1. In `apps/server/src/routes.ts`:
+     ```typescript
+     router.get('/health', async (_req, res) => {
+       let dbStatus = 'disconnected';
+       try {
+         await prisma.$queryRaw`SELECT 1`;
+         dbStatus = 'connected';
+       } catch (error) {
+         dbStatus = 'error';
+       }
+       res.status(200).json({ status: 'ok', database: dbStatus, ... });
+     });
+     ```
+     Even when `dbStatus` is `'error'`, HTTP status is **200 OK**. A load balancer or Kubernetes readiness probe polling `/health` will keep routing traffic to an instance that cannot access the database.
+  2. Logging uses standard `morgan` to stdout with no JSON structuring, request IDs (`X-Request-ID`), or log levels.
+  3. No Prometheus metrics (`/metrics`) or OpenTelemetry tracing is configured.
+- **Impact:**
+  Failover and automated container restarts cannot trigger accurately on database disconnection. Production troubleshooting lacks distributed trace correlation.
+- **Remediation:**
+  1. Split into `/health/live` (returns 200 if process alive) and `/health/ready` (returns 503 Service Unavailable if database is unreachable).
+  2. Adopt structured logging with `pino` and inject correlation IDs.
+
+---
+
+### FLAG-DEV-08: Specification Drift Across PRD, API Documentation, and Database Schema
+- **Severity:** **LOW**
+- **Category:** Documentation & Developer Experience
+- **Affected Files:**
+  - [`docs/PRD.md`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/docs/PRD.md)
+  - [`docs/API.md`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/docs/API.md)
+  - [`docs/DATABASE.md`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/docs/DATABASE.md)
+- **Evidence:**
+  1. `docs/API.md` documents `/directory/doctors` and `/directory/shops`, but routes in `routes.ts` mount `usersRoutes` both at `/directory` and at `/` (`/shops`, `/doctors`), leading to dual paths for provider directories.
+  2. `docs/DATABASE.md` documents `AuditLog` fields `resource` and `resourceId`, but does not document `RefreshToken` table or the migration history.
+  3. `docs/PRD.md` describes the product as a complete web + mobile solution, but does not disclose that Doctor, Pharmacy, and Patient portals exist solely on mobile.
+- **Impact:**
+  Integrators and frontend engineers face conflicting documentation regarding endpoint routes and platform capabilities.
+- **Remediation:**
+  Regenerate API documentation using OpenAPI/Swagger specs derived directly from Zod route schemas.
+
+---
+
