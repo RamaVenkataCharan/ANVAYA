@@ -44,3 +44,31 @@ While core access-control logic (IDOR protections, role gates, single-use prescr
 ```
 
 ---
+
+## 2. Identified Security Flags (FLAGS First)
+
+Every finding below details the severity, category, affected files, exact evidence, technical impact, and concrete remediation steps.
+
+---
+
+### FLAG-SEC-01: Express Trust Proxy Disabled (Rate Limiter Collapse)
+- **Severity:** **HIGH**
+- **Category:** Network Architecture / Denial of Service / Anti-Abuse
+- **Affected File:** [`apps/server/src/app.ts:20-60`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/app.ts#L20-L60)
+- **Evidence:**
+  `app.get('trust proxy')` returns `undefined` (disabled).
+  ```typescript
+  // apps/server/src/app.ts
+  const app = express();
+  // Missing: app.set('trust proxy', 1);
+  const generalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
+  ```
+  Verified via `scripts/audit/run-manual-security-checks.js` (`rateLimitingProxy` check failed).
+- **Impact:**
+  When deployed behind a reverse proxy (Nginx, AWS ALB, Cloudflare, Traefik, Docker ingress), Express defaults to reading client IP from `req.socket.remoteAddress`. Every user shares the reverse proxy's private IP. Consequently:
+  - If one pharmacy makes 30 failed `/prescriptions/verify` attempts, **all pharmacies** behind the proxy are blocked (DoS).
+  - An attacker can spoof `X-Forwarded-For` headers without validation.
+- **Remediation:**
+  Add `app.set('trust proxy', config.isProduction ? 1 : false);` in `apps/server/src/app.ts`. Ensure rate limiters that protect authenticated routes key on `req.user.userId` rather than client IP.
+
+---
