@@ -58,3 +58,7 @@ docs/audit-evidence/
 .npmrc
 coverage/
 apps/server/coverage/
+*.refresh_tokens_store*.json
+**/.refresh_tokens_store*.json
+apps/server/.refresh_tokens_store*.json
+
