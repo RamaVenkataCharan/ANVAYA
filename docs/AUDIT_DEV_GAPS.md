@@ -50,3 +50,27 @@ An independent engineering audit was conducted across the ANVAYA paperless healt
 ## 2. Identified Development Flags (FLAGS First)
 
 ---
+
+### FLAG-DEV-01: 0% Automated Test Coverage on PostgreSQL Engine (Real DB Tests Blocked)
+- **Severity:** **CRITICAL**
+- **Category:** Test Automation & Reliability / Database Architecture
+- **Affected Files:**
+  - [`apps/server/src/config/prisma.ts:20-73`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/config/prisma.ts#L20-L73)
+  - [`apps/server/src/tests/`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/tests/)
+  - [`apps/server/vitest.config.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/vitest.config.ts)
+- **Evidence:**
+  1. In standard test runs (`npm test`), `isDbConnected()` returns `false`. Every service method (`createPrescription`, `createBill`, `createAppointment`, `refreshTokens`) diverts to the `else` branch using `inMemoryDb`.
+  2. The coverage report ([`docs/audit-evidence/test-coverage.txt`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/docs/audit-evidence/test-coverage.txt)) shows that services have ~50% statement coverage because the entire `if (isDbConnected()) { ... }` Prisma execution path is never hit.
+  3. Running `npm run test:postgres` with `TEST_DB=postgres` against a throwaway database URL failed immediately with 11 failing test suites:
+     ```
+     Error: PostgreSQL test connection failed: Can't reach database server at localhost:5432
+     ```
+     See Section 6 for the verbatim execution log.
+- **Impact:**
+  Production deployments connecting to PostgreSQL execute untested Prisma query syntax, joins, relation cascades, and Decimal conversions for the first time in live production. Any SQL syntax error, schema mismatch, or unindexed slow query will only surface in production.
+- **Remediation:**
+  1. Add Docker Compose or GitHub Actions PostgreSQL service container to the CI pipeline (`postgres:16-alpine`).
+  2. Implement an automated pre-test hook in Vitest that initializes migrations (`prisma migrate deploy`) and runs the entire 12-suite test matrix against live PostgreSQL.
+
+---
+
