@@ -124,3 +124,62 @@ Every finding below details the severity, category, affected files, exact eviden
     },
     // Missing: fileFilter
   });
+  ```
+- **Impact:**
+  While `LocalStorageService` performs downstream MIME and extension checks before saving to disk, Multer accepts and buffers arbitrary binary payloads (e.g., 10MB `.exe`, `.zip`, `.iso`) into Node.js process heap memory before reaching the service layer. Multiple concurrent invalid uploads can cause Node.js heap exhaustion (OOM).
+- **Remediation:**
+  Add a strict `fileFilter` directly to the Multer instance in `report.routes.ts`:
+  ```typescript
+  const ALLOWED_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      if (ALLOWED_MIMES.includes(file.mimetype.toLowerCase())) {
+        cb(null, true);
+      } else {
+        cb(new BadRequestError('Only PDF, JPEG, and PNG files are accepted'));
+      }
+    },
+  });
+  ```
+
+---
+
+### FLAG-SEC-04: File Storage Relies on Client Mime & Extension (No Magic Byte Check)
+- **Severity:** **MEDIUM**
+- **Category:** Input Validation / File Security
+- **Affected File:** [`apps/server/src/services/storage/localStorage.service.ts:58-65`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/services/storage/localStorage.service.ts#L58-L65)
+- **Evidence:**
+  ```typescript
+  const ext = path.extname(file.originalname).toLowerCase();
+  const mime = file.mimetype.toLowerCase();
+
+  if (!this.allowedMimeTypes.has(mime) || !this.allowedExtensions.has(ext)) {
+    throw new BadRequestError('Invalid file type. Only PDF, JPG, and PNG documents are allowed.');
+  }
+  ```
+- **Impact:**
+  MIME types (`file.mimetype`) and original extensions (`file.originalname`) are client-supplied strings. A malicious actor can upload an HTML file or script renamed with `.pdf` extension and `application/pdf` MIME header. If served directly or viewed in a web browser, this can enable stored Cross-Site Scripting (XSS).
+- **Remediation:**
+  Inspect initial magic bytes of the file buffer:
+  - PDF: `%PDF` (`0x25 0x50 0x44 0x46`)
+  - PNG: `0x89 0x50 0x4E 0x47`
+  - JPEG: `0xFF 0xD8 0xFF`
+
+---
+
+### FLAG-SEC-05: Push Notification Worker Network Failure Handling
+- **Severity:** **MEDIUM**
+- **Category:** Resilience / Third-Party External Dependency
+- **Affected File:** [`apps/server/src/jobs/refillReminders.ts:50-80`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/jobs/refillReminders.ts#L50-L80)
+- **Evidence:**
+  ```typescript
+  const chunks = expo.chunkPushNotifications(messages);
+  for (const chunk of chunks) {
+    await expo.sendPushNotificationsAsync(chunk);
+  }
+  ```
+  On `main`, there is no `NODE_ENV === 'test'` guard; if the Expo push gateway experiences timeouts or rate limits during automated jobs, the reminder loop can fail midway without completing remaining patient reminder updates.
+- **Impact:**
+  Failure to deliver medicine refill notifications; transient gateway errors can leave reminders in pending state indefinitely.
