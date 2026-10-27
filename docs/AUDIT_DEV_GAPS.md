@@ -74,3 +74,74 @@ An independent engineering audit was conducted across the ANVAYA paperless healt
 
 ---
 
+### FLAG-DEV-02: Broken Mobile Health Report Streaming (HTTP 401 on File View)
+- **Severity:** **HIGH**
+- **Category:** Mobile User Experience / API Integration / Authentication
+- **Affected Files:**
+  - [`apps/mobile/app/(patient)/records.tsx:276-287`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/mobile/app/%28patient%29/records.tsx#L276-L287)
+  - [`apps/server/src/modules/reports/report.routes.ts:20-60`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/reports/report.routes.ts#L20-L60)
+- **Evidence:**
+  In `apps/mobile/app/(patient)/records.tsx`:
+  ```typescript
+  const handleViewReport = (report: ReportItem) => {
+    // Open authenticated streaming endpoint
+    const fileUrl = `${API_BASE_URL}/reports/${report.id}/file`;
+    Linking.openURL(fileUrl).catch(() => { ... });
+  };
+  ```
+  `Linking.openURL` launches the mobile operating system's external browser (Safari/Chrome). The external browser does not possess the React Native app's in-memory Bearer token. In `report.routes.ts`:
+  ```typescript
+  router.use(authenticateJwt);
+  router.get('/:id/file', (req, res, next) => reportController.streamReportFile(req, res, next));
+  ```
+  The browser GET request arrives with no `Authorization` header. Express rejects it with:
+  ```json
+  { "success": false, "error": "UnauthorizedError", "message": "Authorization token required" }
+  ```
+- **Impact:**
+  Patients cannot open, view, or download their uploaded lab reports, discharge summaries, or imaging scans on mobile devices.
+- **Remediation:**
+  Implement one of two standard patterns:
+  1. **Short-Lived Signed Ticket:** Add `POST /reports/:id/view-token` returning a 60-second HMAC token query param (`/reports/:id/file?ticket=...`).
+  2. **In-App Native Viewer:** Use `expo-file-system` to download the file with `Authorization: Bearer ${token}` headers to local cache, then present with `expo-sharing` or a native modal.
+
+---
+
+### FLAG-DEV-03: Appointment Booking Lacks Doctor Slot Management & Conflict Prevention
+- **Severity:** **HIGH**
+- **Category:** Business Logic / Clinical Operations
+- **Affected Files:**
+  - [`apps/server/src/modules/appointments/appointment.service.ts:12-40`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/appointments/appointment.service.ts#L12-L40)
+  - [`apps/mobile/app/(patient)/appointments.tsx`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/mobile/app/%28patient%29/appointments.tsx)
+- **Evidence:**
+  `AppointmentService.createAppointment` validates only that `dateTime` is in the future:
+  ```typescript
+  const apptDate = new Date(input.dateTime);
+  if (isNaN(apptDate.getTime()) || apptDate.getTime() <= Date.now()) {
+    throw new BadRequestError('Appointment date and time must be in the future');
+  }
+  ```
+  There is:
+  - No check against the doctor's working hours or days of service.
+  - No default consultation duration (e.g., 15 or 30 minutes).
+  - No query checking whether `Appointment` records already exist for that `doctorId` at that `dateTime`.
+  - No appointment rescheduling endpoint (`updateAppointmentStatus` only transitions status enum).
+- **Impact:**
+  Unlimited patients can book appointments with the same doctor at the exact same minute. Doctors cannot define clinic availability or break times. Patients cannot reschedule without cancelling and re-booking.
+- **Remediation:**
+  1. Add `DoctorSchedule` model (days of week, shift start/end times, slot duration).
+  2. Check for slot overlaps before inserting `Appointment`:
+     ```typescript
+     const conflict = await prisma.appointment.findFirst({
+       where: {
+         doctorId: input.doctorId,
+         dateTime: apptDate,
+         status: { in: [AppointmentStatus.SCHEDULED, AppointmentStatus.CONFIRMED] },
+       },
+     });
+     if (conflict) throw new ConflictError('Doctor is already booked for this time slot');
+     ```
+  3. Add `PATCH /appointments/:id/reschedule` endpoint.
+
+---
+
