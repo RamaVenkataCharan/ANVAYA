@@ -20,6 +20,7 @@ import {
 } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { MedicineAutocomplete } from '../../components/MedicineAutocomplete';
 
 interface PatientLookupResult {
   id: string;
@@ -382,17 +383,14 @@ export default function NewPrescriptionScreen() {
                   )}
                 </View>
 
-                {/* Medicine Name */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.smallLabel}>Medicine Name *</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g. Amoxicillin Clavulanate"
-                    placeholderTextColor={Colors.text.muted}
-                    value={med.medicine}
-                    onChangeText={(val) => updateMedicine(index, 'medicine', val)}
-                  />
-                </View>
+                {/* Medicine Name with Autocomplete */}
+                <MedicineAutocomplete
+                  label="Medicine Name *"
+                  placeholder="e.g. Amoxicillin 500mg or Paracetamol"
+                  value={med.medicine}
+                  onChangeText={(val) => updateMedicine(index, 'medicine', val)}
+                  accessibilityLabel={`Medicine ${index + 1} Name`}
+                />
 
                 {/* Dosage & Quantity Row */}
                 <View style={styles.multiColRow}>

@@ -20,6 +20,7 @@ import {
 } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { MedicineAutocomplete } from '../../components/MedicineAutocomplete';
 
 interface PatientLookupResult {
   id: string;
@@ -519,15 +520,15 @@ export default function ShopBillingScreen() {
                         </TouchableOpacity>
                       </View>
 
-                      {/* Medicine Name */}
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Medicine name (e.g. Paracetamol 500mg)"
-                        placeholderTextColor={Colors.text.muted}
+                      {/* Medicine Name with Autocomplete */}
+                      <MedicineAutocomplete
+                        label="Medicine *"
+                        placeholder="e.g. Paracetamol 650mg or Amoxicillin"
                         value={item.medicine}
                         onChangeText={(val) =>
                           handleItemChange(item.id, 'medicine', val)
                         }
+                        accessibilityLabel={`Bill item ${index + 1} medicine name`}
                       />
 
                       {/* Quantity & Unit Price Row */}
