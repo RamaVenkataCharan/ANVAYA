@@ -305,3 +305,60 @@ Every ID-bearing route was evaluated using 2 Patients (A and B), 2 Doctors (A an
 | `DELETE /reports/:id` | Unrelated Patient B | Patient A Report | **403 Forbidden** | 403 | **PASS** |
 | `GET /reports/:id` | System Administrator | Patient Clinical Report | **403 Forbidden** | 403 | **PASS** (Privacy Gate) |
 
+**Result:** **16 of 16 IDOR attack scenarios rejected with HTTP 403 Forbidden.**
+
+### 4.2 Mass Assignment & Parameter Pollution
+- **Role Escalation in Registration:** Injected `{ role: 'ADMIN', isVerified: true, verificationStatus: 'APPROVED' }` into `POST /auth/register`. Request rejected with **HTTP 400 Bad Request**; Zod discriminated union prevents elevation to ADMIN.
+- **Appointment Foreign Key Tampering:** Injected foreign IDs `{ doctorId: 'attacker-id', patientId: 'victim-id' }` into `PATCH /appointments/:id/status`. Verified that neither `doctorId` nor `patientId` was mutated.
+
+### 4.3 JWT & Authentication Abuse
+- **`alg: none` Signature Bypass:** Sent JWT with header `{"alg":"none"}` to `GET /auth/me`. Rejected with **HTTP 401 Unauthorized**.
+- **Tampered Signature:** Modified token signature bits. Rejected with **HTTP 401 Unauthorized**.
+- **Suspended User Revocation:** Admin suspension of a user immediately revokes both access tokens and refresh tokens on the subsequent request (HTTP 401).
+
+### 4.4 Business Logic & Financial Integrity
+- **Single-Use Dispense Replay Guard:** Second dispense attempt of prescription `rxCode` immediately returned **HTTP 400 Bad Request (Fraud Alert)**. Double fulfillment is strictly prevented.
+- **Concurrent Ledger Transactions:** 10 simultaneous credit transactions of ₹10 each against Patient A updated the ledger balance from ₹150 to ₹250 with zero dropped updates.
+- **Push Notification Privacy:** Refill notification payload excludes patient clinical diagnosis; only generic reminder messaging is sent over APNs/FCM.
+
+---
+
+## 5. Disagreements & Reconciliations with Earlier QA Reports
+
+During this audit, earlier QA documents (`docs/QA_REPORT.md` and `docs/QA_REPORT_initial.md`) were cross-referenced with the active codebase on `main`. The following discrepancies were identified:
+
+1. **Refresh Token Persistence Claim (`FLAG-02` / `TOKEN-RESTART`):**
+   - *Earlier QA Report Claim:* "Verified. Refresh token revocations are persisted to database schema (RefreshToken table with userId, hash, expiresAt, revokedAt) and survive server reboots."
+   - *Independent Audit Finding:* **DISAGREEMENT.** On the `main` branch, the `RefreshToken` table does not exist in `prisma/schema.prisma`. It was only staged in uncommitted workspace files. On `main`, revocations live exclusively in memory and do not survive a server restart.
+2. **PostgreSQL Test Suite Status (`test:postgres`):**
+   - *Earlier QA Report Claim:* Claimed 100% pass across all tests while simultaneously noting Postgres was not run.
+   - *Independent Audit Finding:* Clarified. `npm test` runs 122 tests solely against in-memory JavaScript arrays. Running `npm run test:postgres` immediately fails fast with 11 failing suites because PostgreSQL is unreachable.
+3. **Mobile TypeScript Health:**
+   - *Earlier QA Report Claim:* "0 errors across all 4 workspaces."
+   - *Independent Audit Finding:* Technically true that `tsc` exits 0, but misleading: `apps/mobile/tsconfig.json` has `strict: false`, suppressing type errors that would otherwise be flagged under strict mode.
+
+---
+
+## 6. "Not Checked" List (Physical & Production Boundaries)
+
+The following items could not be validated in the local headless environment:
+- [ ] **Physical Camera Barcode Scanning:** Scanning physical printed QR codes under varying real-world lighting and camera resolutions on physical iOS/Android devices.
+- [ ] **APNs & FCM Remote Push Delivery:** Live end-to-end receipt of APNs/FCM push notifications on a physical lock screen (requires live Apple Developer / Firebase credentials).
+- [ ] **S3 Multipart Uploads:** Uploading files to AWS S3 buckets (tested with local filesystem storage service).
+- [ ] **Hardware Biometric Keystore Storage:** Clearing biometrics on app uninstallation and device migration on physical iOS Keychain and Android Keystore.
+- [ ] **Live Postgres High-Concurrency Load Testing:** Under 500+ simultaneous database connections (Postgres daemon was offline).
+
+---
+
+## 7. Phased Remediation Order
+
+```mermaid
+graph TD
+    P1[Phase 1: Immediate Security Hardening] --> P2[Phase 2: Input & File Storage Hardening]
+    P2 --> P3[Phase 3: Client Strictness & Operations]
+    
+    subgraph P1[Phase 1: Immediate Security Hardening]
+        F1[FLAG-SEC-01: Enable Trust Proxy in Express]
+        F2[FLAG-SEC-02: Migrate RefreshToken Table to Postgres Schema]
+    end
+    
