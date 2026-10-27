@@ -366,3 +366,104 @@ Serialized Error: {
 
 ---
 
+## 7. "Not Checked" List
+
+The following items could not be validated during this audit due to environmental or external service constraints:
+
+1. **Live PostgreSQL Query Execution Plans & Index Utilization:** Because PostgreSQL was unreachable on the host, `EXPLAIN ANALYZE` query plans on indexes (`Prescription_code_idx`, `Consent_patientId_doctorId_key`) could not be measured.
+2. **End-to-End Push Notification Delivery to Devices:** Apple Push Notification Service (APNs) and Firebase Cloud Messaging (FCM) live delivery via `expo-server-sdk` could not be tested without physical mobile devices and active APNs/FCM credentials.
+3. **AWS S3 / Cloud Storage Upload Pipeline:** Live S3 multi-part uploads could not be exercised because production AWS bucket credentials were not configured in local environment variables.
+4. **Native Mobile Camera Barcode Scanner on Physical Devices:** Scanning physical QR codes with device cameras was tested using mock payloads rather than camera optical sensors.
+5. **High-Concurrency Load Testing (1,000+ req/sec):** Network throughput and Redis/database connection pool saturation under DDoS conditions were not tested.
+
+---
+
+## 8. Phased Fix Order & Remediation Roadmap
+
+```
++-------------------------------------------------------------------------------+
+| PHASE 1: TESTING & ENGINE UNIFICATION (Days 1 - 3)                            |
+| • Spin up ephemeral PostgreSQL container in CI/CD pipeline                    |
+| • Execute full 122-test suite against real PostgreSQL with 100% pass          |
+| • Fix any Decimal serialization or relational cascade discrepancies           |
++---------------------------------------+---------------------------------------+
+                                        |
++---------------------------------------v---------------------------------------+
+| PHASE 2: MOBILE DOCUMENT PREVIEW & REVERSE PROXY FIXES (Days 4 - 6)           |
+| • Implement temporary signed URL or native download viewer for mobile reports |
+| • Enable Express 'trust proxy' in apps/server/src/app.ts                      |
+| • Enable TypeScript strict mode in apps/mobile/tsconfig.json                  |
++---------------------------------------+---------------------------------------+
+                                        |
++---------------------------------------v---------------------------------------+
+| PHASE 3: CLINICAL & SCHEDULING ENHANCEMENTS (Days 7 - 12)                     |
+| • Implement Doctor schedule slots and concurrent booking conflict checks      |
+| • Add appointment reschedule endpoint (PATCH /appointments/:id/reschedule)   |
+| • Add prescription amendment / voiding workflow for doctors                   |
++---------------------------------------+---------------------------------------+
+                                        |
++---------------------------------------v---------------------------------------+
+| PHASE 4: ENTERPRISE OPERATIONS & OBSERVABILITY (Days 13 - 18)                 |
+| • Split /health into /health/live and /health/ready (503 on DB error)         |
+| • Implement structured JSON logging with correlation IDs                      |
+| • Automate daily pg_dump database backups and replication monitoring          |
++-------------------------------------------------------------------------------+
+```
+
+---
+
+## 9. Actionable Engineering Backlog
+
+### TASK-DEV-01: Containerized PostgreSQL in CI & Real DB Test Automation
+- **Category:** Test Engineering / Database
+- **Affected Files:** `.github/workflows/test.yml`, `apps/server/vitest.config.ts`, `apps/server/src/config/prisma.ts`
+- **Description:** Configure a PostgreSQL service container (`postgres:16-alpine`) in GitHub Actions and local docker-compose. Add an npm script `test:ci` that runs `prisma migrate deploy` followed by `TEST_DB=postgres vitest run`.
+- **Acceptance Criteria:**
+  1. `npm run test:postgres` runs all 12 test suites against real PostgreSQL.
+  2. All 122 tests pass with 0 skipped and 0 fallback warnings.
+  3. CI pipeline fails if any test fails against real PostgreSQL.
+
+### TASK-DEV-02: Fix Mobile Health Report Document Preview
+- **Category:** Mobile UX / Authentication
+- **Affected Files:** [`apps/mobile/app/(patient)/records.tsx`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/mobile/app/%28patient%29/records.tsx), [`apps/server/src/modules/reports/report.routes.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/reports/report.routes.ts), [`apps/server/src/modules/reports/report.controller.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/reports/report.controller.ts)
+- **Description:** Replace unauthenticated `Linking.openURL` with an authenticated native download mechanism using `expo-file-system` and `expo-sharing`, or generate a 60-second single-use HMAC download ticket.
+- **Acceptance Criteria:**
+  1. Tapping a report on mobile downloads the file with the user's active session token.
+  2. PDF, PNG, and JPG files open in the native operating system viewer without receiving HTTP 401.
+  3. Doctors with active consent can view reports; unauthorized users are rejected.
+
+### TASK-DEV-03: Implement Appointment Slot Allocation & Conflict Prevention
+- **Category:** Clinical Workflow
+- **Affected Files:** [`apps/server/src/modules/appointments/appointment.service.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/appointments/appointment.service.ts), [`apps/server/prisma/schema.prisma`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/prisma/schema.prisma)
+- **Description:** Prevent booking overlaps by checking for existing `SCHEDULED` or `CONFIRMED` appointments for the same doctor at the same time slot.
+- **Acceptance Criteria:**
+  1. Attempting to book an appointment during an occupied doctor time slot returns `409 Conflict`.
+  2. Added `PATCH /appointments/:id/reschedule` allowing date updates with validation.
+  3. Automated regression tests verify conflicting bookings are rejected.
+
+### TASK-DEV-04: Enable TypeScript Strict Mode on Mobile
+- **Category:** Code Quality / Type Safety
+- **Affected Files:** [`apps/mobile/tsconfig.json`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/mobile/tsconfig.json)
+- **Description:** Set `"strict": true` in `apps/mobile/tsconfig.json`. Address all resulting compiler type errors across the mobile codebase.
+- **Acceptance Criteria:**
+  1. `"strict": true` is set in `apps/mobile/tsconfig.json`.
+  2. `npx tsc --noEmit -p apps/mobile/tsconfig.json` exits with code 0.
+  3. No `@ts-ignore` or `@ts-nocheck` workarounds introduced.
+
+### TASK-DEV-05: Health Check Readiness Probe Split
+- **Category:** DevOps / Infrastructure
+- **Affected Files:** [`apps/server/src/routes.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/routes.ts)
+- **Description:** Refactor `/health` endpoint to support Kubernetes and cloud load balancer probes.
+- **Acceptance Criteria:**
+  1. `GET /health/live` returns HTTP 200 as long as Express is responsive.
+  2. `GET /health/ready` executes `SELECT 1` on PostgreSQL and returns HTTP 503 if disconnected.
+  3. Automated test validates 503 response on database disconnection.
+
+### TASK-DEV-06: Prescription Amendment & Addendum Loop
+- **Category:** Clinical Workflow
+- **Affected Files:** [`apps/server/src/modules/prescriptions/prescription.service.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/prescriptions/prescription.service.ts), [`apps/server/src/modules/prescriptions/prescription.routes.ts`](file:///c:/Users/ramav/Documents/PROJECTS/ANVAYA/apps/server/src/modules/prescriptions/prescription.routes.ts)
+- **Description:** Implement `POST /prescriptions/:id/amend` allowing doctors to void a mistake and issue a corrected prescription linked to the previous record.
+- **Acceptance Criteria:**
+  1. Doctor can amend an un-dispensed prescription.
+  2. Original prescription is marked `SUPERSEDED` and retains audit link to new prescription.
+  3. Pharmacy scanning the old QR code receives an alert redirecting to the amended code.
