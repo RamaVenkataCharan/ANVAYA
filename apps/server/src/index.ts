@@ -6,7 +6,7 @@ import { initRefillReminderCron } from './jobs/refillReminders';
 const app = createApp();
 
 // Start Server
-const server = app.listen(config.port, async () => {
+const server = app.listen(config.port, '0.0.0.0', async () => {
   console.log(`
 =============================================================
   🌿 ANVAYA Healthcare Server is running!
