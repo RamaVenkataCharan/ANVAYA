@@ -16,7 +16,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import {
   PaymentStatus,
-  BillItemInput,
   CreateBillInput,
 } from '@anvaya/shared';
 import { api } from '../../services/api';

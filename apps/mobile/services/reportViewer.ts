@@ -42,7 +42,7 @@ export function getReportLocalCacheUri(report: ViewableReport): string {
  */
 export async function downloadReportFile(
   report: ViewableReport,
-  onProgress?: (progressFraction: number) => void
+  _onProgress?: (progressFraction: number) => void
 ): Promise<ReportDownloadResult> {
   const token = useAuthStore.getState().accessToken;
   if (!token) {

@@ -12,14 +12,13 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateRefillReminderInput } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 
 export default function ShopRefillRemindersScreen() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const params = useLocalSearchParams<{
     prescriptionId?: string;
@@ -33,9 +32,7 @@ export default function ShopRefillRemindersScreen() {
   const [prescriptionId, setPrescriptionId] = useState(
     params.prescriptionId || ''
   );
-  const [patientDisplayName, setPatientDisplayName] = useState(
-    params.patientName || ''
-  );
+  const patientDisplayName = params.patientName || '';
   const [daysAhead, setDaysAhead] = useState(30);
   const [customDate, setCustomDate] = useState(() => {
     const d = new Date();

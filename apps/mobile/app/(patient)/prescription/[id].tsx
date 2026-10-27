@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -50,6 +51,9 @@ export default function PrescriptionDetailScreen() {
         <View style={styles.centerContainer}>
           <Text style={styles.errorEmoji}>⚠️</Text>
           <Text style={styles.errorText}>Prescription not found or inaccessible</Text>
+          <TouchableOpacity style={[styles.backButton, { marginBottom: 12 }]} onPress={() => { void refetch(); }}>
+            <Text style={styles.backButtonText}>🔄 Retry</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Text style={styles.backButtonText}>← Go Back</Text>
           </TouchableOpacity>
@@ -82,7 +86,18 @@ export default function PrescriptionDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={() => {
+              void refetch();
+            }}
+            tintColor={Colors.roles.patient}
+          />
+        }
+      >
         {/* Navigation Bar */}
         <View style={styles.navBar}>
           <TouchableOpacity

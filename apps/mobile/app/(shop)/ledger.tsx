@@ -5,14 +5,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  FlatList,
   Modal,
   ScrollView,
   TextInput,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LedgerType, CreateLedgerEntryInput } from '@anvaya/shared';
 import { api } from '../../services/api';
@@ -29,7 +27,6 @@ interface PatientBalanceSummary {
 }
 
 export default function ShopLedgerScreen() {
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);

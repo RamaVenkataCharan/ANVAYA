@@ -13,7 +13,7 @@ import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
 
 export default function PendingVerificationScreen() {
-  const { user, role, verificationStatus, refreshMe, logout } = useAuthStore();
+  const { user, role, refreshMe, logout } = useAuthStore();
   const [isChecking, setIsChecking] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 

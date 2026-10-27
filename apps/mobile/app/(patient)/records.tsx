@@ -17,11 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import * as Linking from 'expo-linking';
 import { ReportType } from '@anvaya/shared';
-import { api, API_BASE_URL } from '../../services/api';
+import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
-import { useAuthStore } from '../../store/auth';
 import { ReportViewModal } from '../../components/ReportViewModal';
 
 interface ReportItem {
@@ -64,7 +62,6 @@ interface BillItem {
 
 export default function PatientRecordsScreen() {
   const queryClient = useQueryClient();
-  const { accessToken } = useAuthStore();
   const [activeMainTab, setActiveMainTab] = useState<'reports' | 'bills'>('reports');
   const [selectedReportType, setSelectedReportType] = useState<'ALL' | ReportType>('ALL');
 

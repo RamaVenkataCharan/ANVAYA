@@ -9,13 +9,11 @@ import {
   RefreshControl,
   Modal,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import * as Linking from 'expo-linking';
 import { ReportType } from '@anvaya/shared';
-import { api, API_BASE_URL } from '../../services/api';
+import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { ReportViewModal } from '../../components/ReportViewModal';
 

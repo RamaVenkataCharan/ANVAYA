@@ -10,14 +10,13 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
 
 export default function LoginScreen() {
-  const router = useRouter();
   const { login } = useAuthStore();
 
   const [identifier, setIdentifier] = useState('');
