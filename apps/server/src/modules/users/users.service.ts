@@ -487,13 +487,13 @@ export class UsersService {
               diagnosis: p.diagnosis,
               notes: p.notes,
               createdAt: p.createdAt,
-              items: p.items,
+              items: inMemoryDb.prescriptionItems.filter((i) => i.prescriptionId === p.id),
             })),
           appointmentsManaged: inMemoryDb.appointments
             .filter((a) => a.doctorId === doctorId)
             .map((a) => ({
               id: a.id,
-              scheduledAt: a.scheduledAt,
+              dateTime: a.dateTime,
               status: a.status,
               notes: a.notes,
               createdAt: a.createdAt,
@@ -511,8 +511,8 @@ export class UsersService {
             .filter((b) => b.shopId === shopId)
             .map((b) => ({
               id: b.id,
-              totalAmount: b.totalAmount,
-              paymentMode: b.paymentMode,
+              totalAmount: b.total,
+              paymentMethod: b.paymentMethod,
               createdAt: b.createdAt,
             })),
         };
@@ -537,7 +537,7 @@ export class UsersService {
     userAgent?: string
   ) {
     let userHash: string | null = null;
-    let userRole: Role | null = null;
+    let userRole: any = null;
 
     if (isDbConnected()) {
       const user = await prisma.user.findUnique({ where: { id: userId } });

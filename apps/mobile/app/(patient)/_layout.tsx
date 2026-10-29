@@ -54,20 +54,20 @@ export default function PatientLayout() {
         }}
       />
       <Tabs.Screen
-        name="appointments"
-        options={{
-          title: 'Visits',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📅</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="wallet"
         options={{
           title: 'Wallet',
           tabBarIcon: ({ focused }) => (
             <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📱</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Appointments',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📅</Text>
           ),
         }}
       />
@@ -81,36 +81,36 @@ export default function PatientLayout() {
         }}
       />
       <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>⋯</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="shops"
         options={{
-          title: 'Shops',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>🏥</Text>
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="consent"
         options={{
-          title: 'Consent',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>🛡️</Text>
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>👤</Text>
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="prescription/[id]"
         options={{
-          href: null, // Hidden from bottom tab bar
+          href: null,
         }}
       />
     </Tabs>

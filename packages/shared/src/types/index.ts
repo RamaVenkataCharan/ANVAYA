@@ -69,6 +69,8 @@ export interface JwtPayload {
   patientId?: string;
   verificationStatus?: VerificationStatus;
   tokenVersion?: number;
+  iat?: number;
+  exp?: number;
 }
 
 export interface AuthTokens {

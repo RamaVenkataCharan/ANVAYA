@@ -77,39 +77,39 @@ export default function ShopLayout() {
         }}
       />
       <Tabs.Screen
-        name="invoices"
-        options={{
-          title: 'Invoices',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>🧾</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="ledger"
         options={{
-          title: 'Khata',
+          title: 'Customers',
           tabBarIcon: ({ focused }) => (
             <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📖</Text>
           ),
         }}
       />
       <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>⋯</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="invoices"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="refill-reminders"
         options={{
-          title: 'Refills',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>⏰</Text>
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>👤</Text>
-          ),
+          href: null,
         }}
       />
     </Tabs>

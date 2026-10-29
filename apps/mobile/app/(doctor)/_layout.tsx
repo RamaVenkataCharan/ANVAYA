@@ -59,20 +59,11 @@ export default function DoctorLayout() {
         }}
       />
       <Tabs.Screen
-        name="appointments"
+        name="patients"
         options={{
-          title: 'Schedule',
+          title: 'Patients',
           tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>🩺</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="new-prescription"
-        options={{
-          title: 'New Rx',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>📝</Text>
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>👥</Text>
           ),
         }}
       />
@@ -86,21 +77,33 @@ export default function DoctorLayout() {
         }}
       />
       <Tabs.Screen
-        name="patients"
+        name="appointments"
         options={{
-          title: 'Patients',
+          title: 'Appointments',
           tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>👥</Text>
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>🩺</Text>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>⋯</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="new-prescription"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ focused }) => (
-            <Text style={{ fontSize: 18, opacity: focused ? 1 : 0.6 }}>👤</Text>
-          ),
+          href: null,
         }}
       />
     </Tabs>

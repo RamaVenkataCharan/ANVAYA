@@ -144,7 +144,7 @@ Status Legend:
 | **B8** | Consent & Access History | Patient | `app/(patient)/consent.tsx` | `GET /consent/active`, `GET /reports/audit/access-history` (Tier B) | **PARTIAL** | Add audit log view: "Who accessed my medical records" |
 | **B9a** | Pharmacy Directory | Patient | `app/(patient)/shops.tsx` | `GET /shops` | **EXISTS** | Directory search with operating hours |
 | **B9b** | Pharmacy Detail | Patient | `app/(patient)/shop/[id].tsx` | `GET /shops/:id` | **MISSING** | Detail view with direct phone call & maps directions |
-| **B10** | Patient More Tab | Patient | `app/(patient)/more.tsx` | None (Navigation hub) | **MISSING** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
+| **B10** | Patient More Tab | Patient | `app/(patient)/more.tsx` | None (Navigation hub) | **EXISTS** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
 
 ---
 
@@ -161,7 +161,7 @@ Status Legend:
 | **C5** | Prescription Templates | Doctor | `app/(doctor)/templates.tsx` | None (Local storage) | **MISSING** | Save/reuse standardized medicine bundles |
 | **C6** | Void / Amend Prescription | Doctor | `app/(doctor)/prescription/[id]/void.tsx` | `POST /prescriptions/:id/void` (Tier B) | **MISSING** | Void issued Rx with required reason, reissue linked Rx |
 | **C7** | Edit Clinic Profile | Doctor | `app/(doctor)/edit-profile.tsx` | `PATCH /users/profile` | **MISSING** | Clinic address, consultation hours display |
-| **C8** | Doctor More Tab | Doctor | `app/(doctor)/more.tsx` | None (Navigation hub) | **MISSING** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
+| **C8** | Doctor More Tab | Doctor | `app/(doctor)/more.tsx` | None (Navigation hub) | **EXISTS** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
 
 ---
 
@@ -178,7 +178,7 @@ Status Legend:
 | **D4b** | Customer Detail & Khata Ledger | Shop | `app/(shop)/customer/[id].tsx` | `GET /billing/ledger/balance/:patientId`, `POST /billing/ledger/payment` | **MISSING** | Transaction ledger history, record partial payment, send reminder |
 | **D5** | Sales & Performance Report | Shop | `app/(shop)/sales-report.tsx` | `GET /billing/my-bills` | **MISSING** | Daily/weekly/monthly volume totals, simple bar chart, PDF share |
 | **D6** | Edit Shop Profile | Shop | `app/(shop)/edit-profile.tsx` | `PATCH /users/profile` | **MISSING** | Store name, timings, drug license, optional GSTIN |
-| **D7** | Shop More Tab | Shop | `app/(shop)/more.tsx` | None (Navigation hub) | **MISSING** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
+| **D7** | Shop More Tab | Shop | `app/(shop)/more.tsx` | None (Navigation hub) | **EXISTS** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
 
 ---
 

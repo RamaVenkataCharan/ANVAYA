@@ -155,5 +155,44 @@ export const te = {
     desc: 'మీరు వెతుకుతున్న స్క్రీన్ అందుబాటులో లేదు.',
     backHome: 'హోమ్‌కు తిరిగి వెళ్ళండి',
   },
+  more: {
+    title: 'మరిన్ని', // machine-drafted, needs native review
+    accountSection: 'ఖాతా మరియు ప్రొఫైల్', // machine-drafted, needs native review
+    profile: 'ప్రొఫైల్ సవరించండి', // machine-drafted, needs native review
+    profileSubtitle: 'వ్యక్తిగత వివరాలను చూడండి మరియు నవీకరించండి', // machine-drafted, needs native review
+    securitySection: 'భద్రత మరియు యాక్సెస్', // machine-drafted, needs native review
+    changePassword: 'పాస్‌వర్డ్ మార్చండి', // machine-drafted, needs native review
+    changePasswordSubtitle: 'మీ భద్రతా ఆధారాలను నవీకరించండి', // machine-drafted, needs native review
+    notifications: 'నోటిఫికేషన్లు', // machine-drafted, needs native review
+    notificationsSubtitle: 'హెచ్చరికలు మరియు అప్‌డేట్‌లను చూడండి', // machine-drafted, needs native review
+    settings: 'సెట్టింగ్‌లు & భాష', // machine-drafted, needs native review
+    settingsSubtitle: 'భాష ఎంపికలు & నోటిఫికేషన్లు', // machine-drafted, needs native review
+    dataSection: 'డేటా & గోప్యత', // machine-drafted, needs native review
+    accountActions: 'డేటా & ఖాతా చర్యలు', // machine-drafted, needs native review
+    accountActionsSubtitle: 'డేటా కాపీని డౌన్‌లోడ్ చేయండి లేదా ఖాతా తీసివేయండి', // machine-drafted, needs native review
+    supportSection: 'సహాయం & చట్టపరమైనవి', // machine-drafted, needs native review
+    help: 'సహాయం & తరచుగా అడిగే ప్రశ్నలు', // machine-drafted, needs native review
+    helpSubtitle: 'తరచుగా అడిగే ప్రశ్నలు మరియు మార్గదర్శకాలు', // machine-drafted, needs native review
+    about: 'అన్వయ గురించి', // machine-drafted, needs native review
+    aboutSubtitle: 'యాప్ వెర్షన్ మరియు ఆర్కిటెక్చర్ సమాచారం', // machine-drafted, needs native review
+    legal: 'నిబంధనలు & గోప్యతా విధానం (చిత్తుప్రతి)', // machine-drafted, needs native review
+    legalSubtitle: 'ప్లాట్‌ఫారమ్ నిబంధనలు మరియు చిత్తుప్రతి ప్రకటనలు', // machine-drafted, needs native review
+    patientSection: 'సంరక్షణ & సేవలు', // machine-drafted, needs native review
+    shops: 'ఫార్మసీ డైరెక్టరీ', // machine-drafted, needs native review
+    shopsSubtitle: 'సమీపంలోని ధృవీకరించబడిన ఫార్మసీలను కనుగొనండి', // machine-drafted, needs native review
+    consent: 'సమ్మతి నిర్వాహకుడు', // machine-drafted, needs native review
+    consentSubtitle: 'డాక్టర్ అనుమతులు మరియు రికార్డు యాక్సెస్ నిర్వహించండి', // machine-drafted, needs native review
+    doctorSection: 'క్లినికల్ సాధనాలు', // machine-drafted, needs native review
+    newRx: 'కొత్త ప్రిస్క్రిప్షన్ రాయండి', // machine-drafted, needs native review
+    newRxSubtitle: 'ఎలక్ట్రానిక్ ప్రిస్క్రిప్షన్ సృష్టించండి మరియు సంతకం చేయండి', // machine-drafted, needs native review
+    shopSection: 'ఫార్మసీ నిర్వహణ', // machine-drafted, needs native review
+    invoices: 'ఇన్‌వాయిస్ ఆర్కైవ్', // machine-drafted, needs native review
+    invoicesSubtitle: 'గతంలో జారీ చేసిన బిల్లులను బ్రౌజ్ చేయండి', // machine-drafted, needs native review
+    refills: 'రీఫిల్ రిమైండర్ల క్యూ', // machine-drafted, needs native review
+    refillsSubtitle: 'రాబోయే ప్రిస్క్రిప్షన్ రీఫిల్‌లను ట్రాక్ చేయండి', // machine-drafted, needs native review
+    signOut: 'లాగ్ అవుట్', // machine-drafted, needs native review
+    signOutSubtitle: 'ఈ పరికరంలో ప్రస్తుత సెషన్ నుండి లాగ్ అవుట్ చేయండి', // machine-drafted, needs native review
+    signOutConfirm: 'మీరు ఖచ్చితంగా లాగ్ అవుట్ చేయాలనుకుంటున్నారా?', // machine-drafted, needs native review
+  },
 };
 
