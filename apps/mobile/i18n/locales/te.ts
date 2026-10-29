@@ -304,4 +304,76 @@ export const te = {
     callPharmacy: 'ఫార్మసీకి కాల్ చేయండి', // machine-drafted, needs native review
     getDirections: 'దిశలను పొందండి', // machine-drafted, needs native review
   },
+  doctorHome: {
+    greeting: 'శుభోదయం,', // machine-drafted, needs native review
+    today: 'ఈ రోజు', // machine-drafted, needs native review
+    appointmentsCount: 'అపాయింట్‌మెంట్లు', // machine-drafted, needs native review
+    followUpsCount: 'ఫాలో అప్‌లు', // machine-drafted, needs native review
+    newPatientsCount: 'కొత్త పేషెంట్', // machine-drafted, needs native review
+    queueTitle: 'ఈ రోజు పేషెంట్ క్యూ', // machine-drafted, needs native review
+    noAppointmentsToday: 'ఈ తేదీకి ఎలాంటి అపాయింట్‌మెంట్‌లు లేవు.', // machine-drafted, needs native review
+    writeRx: 'ప్రిస్క్రిప్షన్ రాయండి', // machine-drafted, needs native review
+    viewCalendar: 'క్యాలెండర్ చూడండి', // machine-drafted, needs native review
+    statusCheckedIn: 'చెక్డ్ ఇన్', // machine-drafted, needs native review
+    statusWaiting: 'వేచి ఉన్నారు', // machine-drafted, needs native review
+    statusScheduled: 'షెడ్యూల్ చేయబడింది', // machine-drafted, needs native review
+    statusInConsultation: 'కన్సల్టేషన్‌లో ఉన్నారు', // machine-drafted, needs native review
+    statusCompleted: 'పూర్తయింది', // machine-drafted, needs native review
+    statusCancelled: 'రద్దు చేయబడింది', // machine-drafted, needs native review
+  },
+  doctorAppointment: {
+    title: 'కన్సల్టేషన్ వివరాలు', // machine-drafted, needs native review
+    patientInfo: 'పేషెంట్ సమాచారం', // machine-drafted, needs native review
+    chiefComplaint: 'ప్రధాన ఫిర్యాదు / కారణం', // machine-drafted, needs native review
+    scheduledTime: 'షెడ్యూల్ చేసిన సమయం', // machine-drafted, needs native review
+    currentStatus: 'కన్సల్టేషన్ స్థితి', // machine-drafted, needs native review
+    markCheckedIn: 'చెక్డ్ ఇన్ అని గుర్తించండి', // machine-drafted, needs native review
+    startConsultation: 'కన్సల్టేషన్ ప్రారంభించండి', // machine-drafted, needs native review
+    markCompleted: 'పూర్తయినట్లు గుర్తించండి', // machine-drafted, needs native review
+    cancelAppointment: 'అపాయింట్‌మెంట్ రద్దు చేయండి', // machine-drafted, needs native review
+    cancelConfirm: 'మీరు ఖచ్చితంగా ఈ అపాయింట్‌మెంట్‌ను రద్దు చేయాలనుకుంటున్నారా?', // machine-drafted, needs native review
+    writePrescription: 'ప్రిస్క్రిప్షన్ రాయండి', // machine-drafted, needs native review
+    viewClinicalHistory: 'పేషెంట్ చరిత్రను చూడండి', // machine-drafted, needs native review
+    statusUpdated: 'అపాయింట్‌మెంట్ స్థితి విజయవంతంగా అప్‌డేట్ చేయబడింది.', // machine-drafted, needs native review
+  },
+  doctorPatient: {
+    title: 'పేషెంట్ క్లినికల్ సారాంశం', // machine-drafted, needs native review
+    consentActive: 'సమ్మతి క్రియాశీలంగా ఉంది', // machine-drafted, needs native review
+    consentRequired: 'సమ్మతి అవసరం', // machine-drafted, needs native review
+    consentNotice: 'పేషెంట్ మునుపటి రికార్డులు చూడటానికి క్రియాశీల సమ్మతి అవసరం.', // machine-drafted, needs native review
+    requestConsent: 'పేషెంట్ సమ్మతిని అభ్యర్థించండి', // machine-drafted, needs native review
+    bloodGroup: 'రక్త వర్గం', // machine-drafted, needs native review
+    allergies: 'అలర్జీలు', // machine-drafted, needs native review
+    diagnoses: 'మునుపటి రోగనిర్ధారణలు', // machine-drafted, needs native review
+    prescriptions: 'ప్రిస్క్రిప్షన్ రికార్డులు', // machine-drafted, needs native review
+    reports: 'ల్యాబ్ రిపోర్టులు', // machine-drafted, needs native review
+    noPrescriptions: 'మునుపటి ప్రిస్క్రిప్షన్లు లేవు.', // machine-drafted, needs native review
+    noReports: 'అప్‌లోడ్ చేసిన రిపోర్టులు లేవు.', // machine-drafted, needs native review
+    noneRecorded: 'నమోదు కాలేదు', // machine-drafted, needs native review
+  },
+  doctorPrescription: {
+    title: 'ప్రిస్క్రిప్షన్ వివరాలు', // machine-drafted, needs native review
+    rxNumber: 'Rx #', // machine-drafted, needs native review
+    patient: 'పేషెంట్', // machine-drafted, needs native review
+    issuedDate: 'జారీ చేసిన తేదీ', // machine-drafted, needs native review
+    medications: 'మందులు', // machine-drafted, needs native review
+    dosage: 'మోతాదు', // machine-drafted, needs native review
+    frequency: 'ఫ్రీక్వెన్సీ', // machine-drafted, needs native review
+    duration: 'వ్యవధి', // machine-drafted, needs native review
+    instructions: 'ప్రత్యేక సూచనలు', // machine-drafted, needs native review
+    cancelRx: 'ప్రిస్క్రిప్షన్ రద్దు చేయండి', // machine-drafted, needs native review
+    cancelConfirm: 'ఈ ప్రిస్క్రిప్షన్‌ను రద్దు చేయాలనుకుంటున్నారా?', // machine-drafted, needs native review
+    cancellationReason: 'రద్దు చేయడానికి కారణం (తప్పనిసరి)', // machine-drafted, needs native review
+    cancelSuccess: 'ప్రిస్క్రిప్షన్ రద్దు చేయబడింది.', // machine-drafted, needs native review
+    cannotCancelDispensed: 'ఈ ప్రిస్క్రిప్షన్ ఇప్పటికే డిస్పెన్స్ చేయబడింది.', // machine-drafted, needs native review
+    voidTitle: 'ప్రిస్క్రిప్షన్ రద్దు', // machine-drafted, needs native review
+    templates: 'ప్రిస్క్రిప్షన్ టెంప్లేట్‌లు', // machine-drafted, needs native review
+    applyTemplate: 'టెంప్లేట్ ఉపయోగించండి', // machine-drafted, needs native review
+  },
+  doctorTemplates: {
+    title: 'క్లినికల్ టెంప్లేట్‌లు', // machine-drafted, needs native review
+    subtitle: 'ప్రామాణిక ఔషధాల బండిల్స్', // machine-drafted, needs native review
+    apply: 'ప్రిస్క్రిప్షన్‌కు వర్తింపజేయండి', // machine-drafted, needs native review
+    itemsCount: 'మందులు', // machine-drafted, needs native review
+  },
 };

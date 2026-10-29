@@ -148,19 +148,19 @@ Status Legend:
 
 ---
 
-### Group C: Doctor Screens
+### Group C: Doctor Screens — COMPLETED
 
 | ID | Screen Title | Role | Route File Path | Endpoints Used | Status | Notes & Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **C1** | Doctor Home Dashboard | Doctor | `app/(doctor)/index.tsx` | `GET /appointments`, `GET /prescriptions` | **PARTIAL** | Date picker `< Today >`, 3 summary cards, patient check-in queue |
+| **C1** | Doctor Home Dashboard | Doctor | `app/(doctor)/index.tsx` | `GET /appointments`, `GET /prescriptions` | **EXISTS** | Redesigned matching mockup: Date navigator `< Today >`, 3 summary cards, patient check-in queue |
 | **C2a** | Schedule & Appointments | Doctor | `app/(doctor)/appointments.tsx` | `GET /appointments` | **EXISTS** | Calendar date filtering, appointment list |
-| **C2b** | Appointment Detail & Notes | Doctor | `app/(doctor)/appointment/[id].tsx` | `GET /appointments/:id`, `PATCH /appointments/:id/status` | **MISSING** | Clinical consultation notes, complete/cancel flow |
+| **C2b** | Appointment Detail & Notes | Doctor | `app/(doctor)/appointment/[id].tsx` | `GET /appointments/:id`, `PATCH /appointments/:id/status` | **EXISTS** | Clinical consultation status updates, write Rx & history actions |
 | **C3a** | My Consented Patients | Doctor | `app/(doctor)/patients.tsx` | `GET /consent/active` | **EXISTS** | Searchable patient directory |
-| **C3b** | Patient Clinical History | Doctor | `app/(doctor)/patient/[id].tsx` | `GET /reports`, `GET /prescriptions` | **MISSING** | Past consultations, active prescriptions, consented diagnostic reports |
-| **C4** | Prescription Detail (Doctor) | Doctor | `app/(doctor)/prescription/[id].tsx` | `GET /prescriptions/:id` | **MISSING** | Clinical view with QR code, status, dispense state |
-| **C5** | Prescription Templates | Doctor | `app/(doctor)/templates.tsx` | None (Local storage) | **MISSING** | Save/reuse standardized medicine bundles |
-| **C6** | Void / Amend Prescription | Doctor | `app/(doctor)/prescription/[id]/void.tsx` | `POST /prescriptions/:id/void` (Tier B) | **MISSING** | Void issued Rx with required reason, reissue linked Rx |
-| **C7** | Edit Clinic Profile | Doctor | `app/(doctor)/edit-profile.tsx` | `PATCH /users/profile` | **MISSING** | Clinic address, consultation hours display |
+| **C3b** | Patient Clinical History | Doctor | `app/(doctor)/patient/[id].tsx` | `GET /reports`, `GET /prescriptions` | **EXISTS** | Past consultations, active prescriptions, consented diagnostic reports |
+| **C4** | Prescription Detail (Doctor) | Doctor | `app/(doctor)/prescription/[id].tsx` | `GET /prescriptions/:id` | **EXISTS** | Clinical view with medicines, dosage, instructions, and void CTA |
+| **C5** | Prescription Templates | Doctor | `app/(doctor)/templates.tsx` | None (Standard clinical bundles) | **EXISTS** | Pre-configured medication bundles for common conditions |
+| **C6** | Void / Amend Prescription | Doctor | `app/(doctor)/prescription/[id]/void.tsx` | `PATCH /prescriptions/:id/cancel` | **EXISTS** | Void issued Rx with required reason, preventing dispensing |
+| **C7** | Edit Clinic Profile | Doctor | `app/(doctor)/edit-profile.tsx` | `PATCH /users/profile` | **EXISTS** | Clinic address and specialization profile editor |
 | **C8** | Doctor More Tab | Doctor | `app/(doctor)/more.tsx` | None (Navigation hub) | **EXISTS** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
 
 ---

@@ -4,181 +4,323 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { VerificationStatus } from '@anvaya/shared';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
-import { StatusBadge } from '../../components/ui';
+import { api } from '../../services/api';
+
+interface DoctorAppointment {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  dateTime: string;
+  status: 'SCHEDULED' | 'CHECKED_IN' | 'IN_CONSULTATION' | 'COMPLETED' | 'CANCELLED';
+  reason?: string;
+  notes?: string;
+  patient?: {
+    id: string;
+    bloodGroup?: string;
+    user?: {
+      name: string;
+      phone?: string;
+      email: string;
+    };
+  };
+}
 
 export default function DoctorDashboard() {
   const router = useRouter();
-  const { user, verificationStatus, refreshMe } = useAuthStore();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const doctor = user?.doctorProfile;
+  const { user } = useAuthStore();
+  const { t } = useTranslation();
 
-  const onRefresh = async () => {
-    setIsRefreshing(true);
+  // Selected date state (defaults to today)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // Date navigation handlers
+  const handlePrevDay = () => {
+    setSelectedDate((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() - 1);
+      return d;
+    });
+  };
+
+  const handleNextDay = () => {
+    setSelectedDate((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + 1);
+      return d;
+    });
+  };
+
+  const handleToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  // Format date strings
+  const isToday =
+    selectedDate.toDateString() === new Date().toDateString();
+
+  const formattedDate = selectedDate.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  // Query appointments
+  const {
+    data: appointments = [],
+    isLoading,
+    isRefetching,
+    refetch,
+    error,
+  } = useQuery<DoctorAppointment[]>({
+    queryKey: ['doctor', 'appointments', selectedDate.toISOString().slice(0, 10)],
+    queryFn: async () => {
+      const res = await api.get('/appointments');
+      const all: DoctorAppointment[] = res.data?.data || [];
+      // Filter for the selected date
+      const targetDateStr = selectedDate.toISOString().slice(0, 10);
+      return all.filter((a) => {
+        if (!a.dateTime) return false;
+        return a.dateTime.slice(0, 10) === targetDateStr;
+      });
+    },
+  });
+
+  // Query notifications for unread dot
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications', 'doctor-unread'],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/notifications');
+        return res.data?.data || [];
+      } catch {
+        return [];
+      }
+    },
+  });
+  const hasUnread = notifications.some((n: any) => !n.isRead);
+
+  // Compute metrics
+  const totalCount = appointments.length;
+  const followUpCount = appointments.filter((a) =>
+    (a.reason || '').toLowerCase().includes('follow')
+  ).length;
+  const newPatientCount = Math.max(0, totalCount - followUpCount);
+
+  // Format appointment time
+  const formatTime = (isoString: string) => {
     try {
-      await refreshMe();
-    } finally {
-      setIsRefreshing(false);
+      const d = new Date(isoString);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '09:00 AM';
     }
   };
 
-  const isApproved = verificationStatus === VerificationStatus.APPROVED;
-  const isPending = verificationStatus === VerificationStatus.PENDING;
+  // Render status badge style & label
+  const renderStatusBadge = (status: string) => {
+    switch (status) {
+      case 'CHECKED_IN':
+        return (
+          <View style={[styles.statusBadge, styles.statusCheckedIn]}>
+            <Text style={styles.statusTextCheckedIn}>{t('doctorHome.statusCheckedIn')}</Text>
+          </View>
+        );
+      case 'IN_CONSULTATION':
+        return (
+          <View style={[styles.statusBadge, styles.statusInConsultation]}>
+            <Text style={styles.statusTextInConsultation}>{t('doctorHome.statusInConsultation')}</Text>
+          </View>
+        );
+      case 'COMPLETED':
+        return (
+          <View style={[styles.statusBadge, styles.statusCompleted]}>
+            <Text style={styles.statusTextCompleted}>{t('doctorHome.statusCompleted')}</Text>
+          </View>
+        );
+      case 'CANCELLED':
+        return (
+          <View style={[styles.statusBadge, styles.statusCancelled]}>
+            <Text style={styles.statusTextCancelled}>{t('doctorHome.statusCancelled')}</Text>
+          </View>
+        );
+      case 'WAITING':
+        return (
+          <View style={[styles.statusBadge, styles.statusWaiting]}>
+            <Text style={styles.statusTextWaiting}>{t('doctorHome.statusWaiting')}</Text>
+          </View>
+        );
+      default:
+        return (
+          <View style={[styles.statusBadge, styles.statusScheduled]}>
+            <Text style={styles.statusTextScheduled}>{t('doctorHome.statusScheduled')}</Text>
+          </View>
+        );
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => {
-              void onRefresh();
-            }}
-            tintColor={Colors.roles.doctor}
-          />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      {/* 1. Header Bar matching Mockup */}
+      <View style={styles.header}>
+        <View style={styles.profileSection}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarEmoji}>👨‍⚕️</Text>
+          </View>
           <View>
-            <Text style={styles.headerSubtitle}>CLINICAL PORTAL</Text>
-            <Text style={styles.headerTitle}>Dr. {user?.name}</Text>
-          </View>
-          <View
-            style={styles.roleBadge}
-            accessibilityRole="text"
-            accessibilityLabel="Role: Registered Doctor"
-          >
-            <Text style={styles.roleBadgeText}>🩺 Doctor</Text>
+            <Text style={styles.greetingText}>{t('doctorHome.greeting')}</Text>
+            <Text style={styles.doctorName}>Dr. {user?.name || 'Arjun Mehta'}</Text>
           </View>
         </View>
 
-        {/* Doctor Credential Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardSectionTitle}>Doctor Information</Text>
-            <StatusBadge
-              label={
-                isApproved
-                  ? '✓ VERIFIED'
-                  : isPending
-                  ? '⏳ PENDING APPROVAL'
-                  : '✕ REJECTED'
-              }
-              variant={isApproved ? 'success' : isPending ? 'warning' : 'error'}
+        <TouchableOpacity
+          style={styles.notificationBtn}
+          onPress={() => router.push('/(common)/notifications')}
+          accessibilityLabel={t('more.notifications')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.bellIcon}>🔔</Text>
+          {hasUnread && <View style={styles.unreadBadgeDot} />}
+        </TouchableOpacity>
+      </View>
+
+      {/* 2. Date Navigator Bar (< Today >) */}
+      <View style={styles.dateNavContainer}>
+        <View style={styles.dateNavControls}>
+          <TouchableOpacity
+            style={styles.dateArrowBtn}
+            onPress={handlePrevDay}
+            accessibilityLabel="Previous day"
+          >
+            <Text style={styles.dateArrowText}>‹</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleToday} activeOpacity={0.7}>
+            <Text style={styles.todayLabel}>{isToday ? t('doctorHome.today') : 'Selected Date'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.dateArrowBtn}
+            onPress={handleNextDay}
+            accessibilityLabel="Next day"
+          >
+            <Text style={styles.dateArrowText}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.dateDisplayRow}>
+          <Text style={styles.formattedDateText}>{formattedDate}</Text>
+          <TouchableOpacity onPress={handleToday} style={styles.calendarIconBtn}>
+            <Text style={styles.calendarIcon}>📅</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 3. Three Summary Metrics Cards Side-by-Side */}
+      <View style={styles.metricsRow}>
+        {/* Card 1: Appointments (Dark forest teal) */}
+        <View style={[styles.metricCard, styles.metricCardDark]}>
+          <Text style={styles.metricNumberDark}>{totalCount}</Text>
+          <Text style={styles.metricLabelDark}>{t('doctorHome.appointmentsCount')}</Text>
+        </View>
+
+        {/* Card 2: Follow ups (Light mint) */}
+        <View style={[styles.metricCard, styles.metricCardMint]}>
+          <Text style={styles.metricNumberMint}>{followUpCount}</Text>
+          <Text style={styles.metricLabelMint}>{t('doctorHome.followUpsCount')}</Text>
+        </View>
+
+        {/* Card 3: New patient (Soft coral) */}
+        <View style={[styles.metricCard, styles.metricCardCoral]}>
+          <Text style={styles.metricNumberCoral}>{newPatientCount}</Text>
+          <Text style={styles.metricLabelCoral}>{t('doctorHome.newPatientsCount')}</Text>
+        </View>
+      </View>
+
+      {/* 4. Patient Queue Section */}
+      <View style={styles.queueHeaderRow}>
+        <Text style={styles.queueTitle}>{t('doctorHome.queueTitle')}</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/(doctor)/new-prescription')}
+          style={styles.writeRxHeaderBtn}
+        >
+          <Text style={styles.writeRxHeaderText}>+ {t('doctorHome.writeRx')}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.roles.doctor} />
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{t('common.error')}</Text>
+          <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
+            <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : appointments.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyIcon}>🗓️</Text>
+          <Text style={styles.emptyTitle}>{t('doctorHome.noAppointmentsToday')}</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={appointments}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.queueListContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={Colors.roles.doctor}
             />
-          </View>
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.patientRowCard}
+              onPress={() => router.push(`/(doctor)/appointment/${item.id}` as any)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              {/* Patient Avatar Circle */}
+              <View style={styles.patientAvatar}>
+                <Text style={styles.patientAvatarText}>
+                  {item.patient?.user?.name ? item.patient.user.name[0].toUpperCase() : 'P'}
+                </Text>
+              </View>
 
-          <View style={styles.divider} />
+              {/* Patient Time & Name */}
+              <View style={styles.patientInfo}>
+                <Text style={styles.appointmentTime}>{formatTime(item.dateTime)}</Text>
+                <Text style={styles.patientName}>
+                  {item.patient?.user?.name || 'Walk-in Patient'}
+                </Text>
+                <Text style={styles.patientReason} numberOfLines={1}>
+                  {item.reason || 'General Consultation'}
+                </Text>
+              </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Specialization</Text>
-            <Text style={styles.detailValue}>
-              {doctor?.specialization || 'General Practice'}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Medical Reg. No.</Text>
-            <Text style={styles.detailValueHighlight}>
-              {doctor?.registrationNo || 'N/A'}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Clinic Address</Text>
-            <Text style={styles.detailValue}>
-              {doctor?.clinicAddress || 'Not specified'}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Email</Text>
-            <Text style={styles.detailValue}>{user?.email}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Phone</Text>
-            <Text style={styles.detailValue}>{user?.phone}</Text>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <Text style={styles.sectionHeader}>Prescription Actions</Text>
-        <View style={styles.actionsGrid}>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(doctor)/new-prescription')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>📝</Text>
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Issue New Prescription</Text>
-              <Text style={styles.actionDesc}>
-                Lookup patient by phone, add medications, and generate verified QR token
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(doctor)/prescriptions')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>📋</Text>
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Issued Prescriptions</Text>
-              <Text style={styles.actionDesc}>
-                Review status (ISSUED / DISPENSED / CANCELLED) and cancel active orders
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(doctor)/appointments')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>🩺</Text>
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Appointment Schedule</Text>
-              <Text style={styles.actionDesc}>
-                Manage patient consultation bookings (confirm, complete, or cancel)
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(doctor)/patients')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>👥</Text>
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>My Consenting Patients</Text>
-              <Text style={styles.actionDesc}>
-                Access health vaults and diagnostic reports shared with your clinical practice
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+              {/* Status Badge & Chevron */}
+              <View style={styles.statusAndChevron}>
+                {renderStatusBadge(item.status)}
+                <Text style={styles.chevronIcon}>›</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -186,171 +328,338 @@ export default function DoctorDashboard() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    backgroundColor: '#FAFBFB',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
-  headerSubtitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primaryLight,
-    letterSpacing: 1.5,
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: Colors.text.primary,
-  },
-  roleBadge: {
-    backgroundColor: Colors.roles.doctorBackground,
-    borderColor: Colors.roles.doctor,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  roleBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.roles.doctor,
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  cardHeaderRow: {
+  profileSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  cardSectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.text.primary,
-  },
-  verifiedTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  verifiedTagApproved: {
-    backgroundColor: Colors.status.successBackground,
-    borderColor: Colors.status.success,
-  },
-  verifiedTagPending: {
-    backgroundColor: Colors.status.warningBackground,
-    borderColor: Colors.status.warning,
-  },
-  verifiedTagRejected: {
-    backgroundColor: Colors.status.errorBackground,
-    borderColor: Colors.status.error,
-  },
-  verifiedText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  verifiedTextApproved: {
-    color: Colors.status.success,
-  },
-  verifiedTextPending: {
-    color: Colors.status.warning,
-  },
-  verifiedTextRejected: {
-    color: Colors.status.error,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 14,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  detailLabel: {
-    fontSize: 13,
-    color: Colors.text.muted,
-  },
-  detailValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    maxWidth: '60%',
-    textAlign: 'right',
-  },
-  detailValueHighlight: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.primaryLight,
-  },
-  sectionHeader: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    marginBottom: 12,
-  },
-  actionsGrid: {
     gap: 12,
-    marginBottom: 20,
   },
-  actionCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    gap: 14,
-  },
-  actionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: Colors.surfaceElevated,
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E8F1F5',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: 1.5,
+    borderColor: '#D0E3EB',
   },
-  actionIcon: {
+  avatarEmoji: {
     fontSize: 22,
   },
-  actionContent: {
-    flex: 1,
+  greetingText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '400',
   },
-  actionTitle: {
-    fontSize: 15,
+  doctorName: {
+    fontSize: 18,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: '#0F172A',
+  },
+  notificationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  bellIcon: {
+    fontSize: 18,
+  },
+  unreadBadgeDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.status.error,
+  },
+  dateNavContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  dateNavControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 4,
   },
-  actionDesc: {
+  dateArrowBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateArrowText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  todayLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  dateDisplayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 40,
+    paddingRight: 6,
+  },
+  formattedDateText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  calendarIconBtn: {
+    padding: 4,
+  },
+  calendarIcon: {
+    fontSize: 16,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 20,
+  },
+  metricCard: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    justifyContent: 'center',
+  },
+  metricCardDark: {
+    backgroundColor: '#0F3B39',
+  },
+  metricNumberDark: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  metricLabelDark: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#D1E7E4',
+  },
+  metricCardMint: {
+    backgroundColor: '#E4F6ED',
+  },
+  metricNumberMint: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#0E6245',
+    marginBottom: 4,
+  },
+  metricLabelMint: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#135841',
+  },
+  metricCardCoral: {
+    backgroundColor: '#FDECEB',
+  },
+  metricNumberCoral: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#B91C1C',
+    marginBottom: 4,
+  },
+  metricLabelCoral: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#842020',
+  },
+  queueHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  queueTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  writeRxHeaderBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    backgroundColor: '#0F3B39',
+    borderRadius: 12,
+  },
+  writeRxHeaderText: {
     fontSize: 12,
-    color: Colors.text.muted,
-    lineHeight: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  queueListContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    gap: 10,
+  },
+  patientRowCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#EDF2F7',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  patientAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  patientAvatarText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  patientInfo: {
+    flex: 1,
+  },
+  appointmentTime: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  patientName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  patientReason: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  statusAndChevron: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  statusCheckedIn: {
+    backgroundColor: '#E4F6ED',
+  },
+  statusTextCheckedIn: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#0E6245',
+  },
+  statusWaiting: {
+    backgroundColor: '#FDECEB',
+  },
+  statusTextWaiting: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B91C1C',
+  },
+  statusScheduled: {
+    backgroundColor: '#EDF2F7',
+  },
+  statusTextScheduled: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  statusInConsultation: {
+    backgroundColor: '#E0F2FE',
+  },
+  statusTextInConsultation: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#0369A1',
+  },
+  statusCompleted: {
+    backgroundColor: '#F1F5F9',
+  },
+  statusTextCompleted: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  statusCancelled: {
+    backgroundColor: '#FEF2F2',
+  },
+  statusTextCancelled: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  chevronIcon: {
+    fontSize: 20,
+    color: '#94A3B8',
+    fontWeight: '300',
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#64748B',
+  },
+  errorText: {
+    fontSize: 14,
+    color: Colors.status.error,
+    marginBottom: 10,
+  },
+  retryBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#0F3B39',
+    borderRadius: 8,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  emptyIcon: {
+    fontSize: 40,
+    marginBottom: 10,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
   },
 });

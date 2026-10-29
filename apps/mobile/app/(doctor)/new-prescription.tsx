@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   prescriptionItemSchema,
@@ -40,6 +40,7 @@ const emptyMedicineItem: PrescriptionItemInput = {
 export default function NewPrescriptionScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const params = useLocalSearchParams<{ patientId?: string; patientName?: string; diagnosis?: string }>();
 
   // Patient lookup state
   const [phone, setPhone] = useState('');
@@ -51,6 +52,19 @@ export default function NewPrescriptionScreen() {
   const [diagnosis, setDiagnosis] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<PrescriptionItemInput[]>([{ ...emptyMedicineItem }]);
+
+  useEffect(() => {
+    if (params.patientId) {
+      setPatient({
+        id: params.patientId,
+        name: params.patientName || 'Consultation Patient',
+        age: 30,
+      });
+    }
+    if (params.diagnosis) {
+      setDiagnosis(params.diagnosis);
+    }
+  }, [params.patientId, params.patientName, params.diagnosis]);
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);

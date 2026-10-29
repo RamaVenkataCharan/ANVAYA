@@ -106,6 +106,42 @@ export default function DoctorLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="appointment/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="patient/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="prescription/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="prescription/[id]/void"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="templates"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

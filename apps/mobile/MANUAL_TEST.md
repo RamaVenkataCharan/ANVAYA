@@ -123,6 +123,28 @@ Because mobile devices cannot reach `localhost`, your development machine and ph
    - Navigate to Pharmacy Directory -> Tap a store card.
    - Verify Pharmacy Detail view with phone call and Google Maps directions triggers.
 
+#### Step 0.8: Group C Doctor Flows (Dashboard, Consultation, Templates, Voiding)
+1. **Doctor Home Dashboard (C1)**:
+   - Log in as verified Doctor.
+   - Verify Doctor greeting header with avatar and notification bell with unread indicator dot.
+   - Test date navigation: tap `‹` and `›` to move between dates, verify `< Today >` label and formatted date.
+   - Verify 3 Summary Cards: Appointments (dark teal), Follow ups (mint), New patient (coral).
+   - Verify Patient Queue list showing scheduled time, patient name, chief complaint, and status badges (`Checked in`, `Waiting`, `Scheduled`).
+2. **Consultation & Status Progression (C2b)**:
+   - Tap a patient in queue -> Open Appointment Detail.
+   - Transition status: `SCHEDULED` -> `CHECKED_IN` -> `IN_CONSULTATION` -> `COMPLETED`.
+   - Verify status pill updates on screen and on the main dashboard queue.
+3. **Patient Clinical Summary & Consent Gate (C3b)**:
+   - Tap "View Patient History" -> If no consent, verify "Consent Required" gate and "Request Consent" button.
+   - If consented, verify display of blood group, known allergies, previous prescriptions, and diagnostic lab reports.
+4. **Prescription Templates (C5)**:
+   - Open More or Templates -> View standardized condition bundles (URI, Hypertension, Diabetes, GERD).
+   - Tap "Apply to Prescription" -> Verify auto-fill of diagnosis and standard medicine items into New Prescription screen.
+5. **Prescription Detail & Void / Cancellation (C4, C6)**:
+   - Open an active prescription -> Verify medicine table with dosage and frequency.
+   - Tap "Cancel / Void Prescription" -> Enter clinical reason -> Confirm voiding.
+   - Verify prescription status updates to CANCELLED and is permanently locked.
+
 
 ---
 
