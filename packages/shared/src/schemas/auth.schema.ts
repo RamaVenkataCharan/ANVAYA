@@ -144,6 +144,39 @@ export const updateProfileSchema = z.object({
   gstin: z.string().trim().optional(),
 });
 
+
+export const updatePatientProfileSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100).optional(),
+    address: z.string().trim().min(3, 'Address is too short').optional(),
+    dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'DOB must be in YYYY-MM-DD format').optional(),
+    gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+    bloodGroup: z.string().trim().optional(),
+    emergencyContact: z.string().trim().optional(),
+  })
+  .strict();
+
+export const updateDoctorProfileSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100).optional(),
+    specialization: z.string().trim().min(2, 'Specialization is required').optional(),
+    clinicAddress: z.string().trim().min(5, 'Clinic address is too short').optional(),
+  })
+  .strict();
+
+export const updateShopProfileSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100).optional(),
+    shopName: z.string().trim().min(2, 'Shop name is required').optional(),
+    address: z.string().trim().min(5, 'Pharmacy address is too short').optional(),
+    timings: z.string().trim().min(3, 'Timings are required').optional(),
+  })
+  .strict();
+
+export type UpdatePatientProfileInput = z.infer<typeof updatePatientProfileSchema>;
+export type UpdateDoctorProfileInput = z.infer<typeof updateDoctorProfileSchema>;
+export type UpdateShopProfileInput = z.infer<typeof updateShopProfileSchema>;
+
 export const deleteAccountSchema = z.object({
   password: z.string().min(1, 'Password is required to confirm account deletion'),
   reason: z.string().trim().max(500).optional(),

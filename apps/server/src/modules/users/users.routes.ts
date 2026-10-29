@@ -48,7 +48,31 @@ router.get('/patients/search', authenticateJwt, (req, res, next) =>
 );
 
 import { validateBody } from '../../middleware/validate';
-import { pushTokenSchema, updateProfileSchema, deleteAccountSchema } from '@anvaya/shared';
+import { pushTokenSchema, updatePatientProfileSchema, updateDoctorProfileSchema, updateShopProfileSchema, deleteAccountSchema } from '@anvaya/shared';
+import { BadRequestError } from '../../utils/errors';
+import { z } from 'zod';
+
+const validateProfileUpdateByRole = (req: any, res: any, next: any) => {
+  const role = req.user?.role;
+  let schema: any;
+  if (role === Role.PATIENT) {
+    schema = updatePatientProfileSchema;
+  } else if (role === Role.DOCTOR) {
+    schema = updateDoctorProfileSchema;
+  } else if (role === Role.SHOP) {
+    schema = updateShopProfileSchema;
+  } else {
+    schema = z.object({ name: z.string().trim().min(2).optional() }).strict();
+  }
+
+  const result = schema.safeParse(req.body);
+  if (!result.success) {
+    const errorDetails = result.error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ');
+    return next(new BadRequestError(`Validation failed: ${errorDetails}`));
+  }
+  req.body = result.data;
+  next();
+};
 
 // Register Expo push token (Authenticated)
 router.post(
@@ -69,14 +93,14 @@ router.post(
 router.patch(
   '/profile',
   authenticateJwt,
-  validateBody(updateProfileSchema),
+  validateProfileUpdateByRole,
   (req, res, next) => usersController.updateProfile(req, res, next)
 );
 
 router.patch(
   '/users/profile',
   authenticateJwt,
-  validateBody(updateProfileSchema),
+  validateProfileUpdateByRole,
   (req, res, next) => usersController.updateProfile(req, res, next)
 );
 

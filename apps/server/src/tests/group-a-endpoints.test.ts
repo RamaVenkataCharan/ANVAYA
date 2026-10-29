@@ -244,6 +244,39 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
       expect(res.body.data.patientProfile.bloodGroup).toBe('B+');
       expect(res.body.data.patientProfile.address).toBe('777 New Lane, Hyderabad');
     });
+
+    it('rejects mass-assignment attempts to elevate role, verificationStatus or change immutable fields', async () => {
+      // 1. Attempt to elevate role to ADMIN
+      const roleRes = await request(app)
+        .patch(`${API}/users/profile`)
+        .set('Authorization', `Bearer ${patToken}`)
+        .send({
+          name: 'Patient Hack',
+          role: 'ADMIN',
+        });
+      expect(roleRes.status).toBe(400);
+
+      // 2. Attempt to tamper with verificationStatus or isActive
+      const statusRes = await request(app)
+        .patch(`${API}/users/profile`)
+        .set('Authorization', `Bearer ${patToken}`)
+        .send({
+          verificationStatus: 'APPROVED',
+          isActive: false,
+        });
+      expect(statusRes.status).toBe(400);
+
+      // 3. Attempt to change email, phone, or license numbers directly
+      const fieldRes = await request(app)
+        .patch(`${API}/users/profile`)
+        .set('Authorization', `Bearer ${patToken}`)
+        .send({
+          email: 'infiltrator@test.com',
+          phone: '+919999999999',
+          registrationNo: 'MCI-FAKE-999',
+        });
+      expect(fieldRes.status).toBe(400);
+    });
   });
 
   describe('A4: Logout All Devices', () => {

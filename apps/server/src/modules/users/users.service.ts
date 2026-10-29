@@ -394,7 +394,6 @@ export class UsersService {
       const user = inMemoryDb.users.find((u) => u.id === userId);
       if (!user) throw new NotFoundError('User not found');
       if (updates.name) user.name = updates.name;
-      if (updates.phone) user.phone = updates.phone;
       user.updatedAt = new Date();
 
       if (role === Role.PATIENT) {
