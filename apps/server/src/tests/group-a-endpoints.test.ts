@@ -412,7 +412,20 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
       expect(docRes.body.data.records.prescriptionsAuthored).toBeDefined();
     });
 
-    it('deactivates account on valid password confirmation', async () => {
+    it('blocks deleting or deactivating the sole remaining admin account', async () => {
+      const res = await request(app)
+        .post(`${API}/users/delete-account`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          password: 'Password123',
+          reason: 'Attempting to delete root admin',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toContain('Cannot delete or deactivate the sole remaining system administrator account');
+    });
+
+    it('deactivates account on valid password confirmation and revokes session', async () => {
       const res = await request(app)
         .post(`${API}/users/delete-account`)
         .set('Authorization', `Bearer ${patToken}`)
@@ -423,6 +436,21 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+
+      // Verify session is immediately revoked (401 on /auth/me)
+      const checkRes = await request(app)
+        .get(`${API}/auth/me`)
+        .set('Authorization', `Bearer ${patToken}`);
+      expect(checkRes.status).toBe(401);
+
+      // Verify login is blocked for deactivated account
+      const loginRes = await request(app)
+        .post(`${API}/auth/login`)
+        .send({
+          identifier: patEmail,
+          password: 'Password123',
+        });
+      expect(loginRes.status).toBe(401);
     });
   });
 });

@@ -52,7 +52,7 @@ export default function AccountActionsScreen() {
 
     Alert.alert(
       t('accountActions.deleteTitle'),
-      'Are you absolutely sure you want to permanently delete your account? This action cannot be reversed.',
+      'Are you sure you want to deactivate your account? Your login will be disabled and sessions revoked immediately. Prescriptions and medical records will be retained in accordance with healthcare record retention laws.',
       [
         { text: t('common.cancel'), style: 'cancel' },
         {

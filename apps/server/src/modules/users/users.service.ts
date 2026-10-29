@@ -1,7 +1,7 @@
 import { VerificationStatus, Role } from '@anvaya/shared';
 import { prisma, isDbConnected } from '../../config/prisma';
 import { inMemoryDb } from '../../db/inMemoryDb';
-import { NotFoundError, UnauthorizedError } from '../../utils/errors';
+import { NotFoundError, UnauthorizedError, ForbiddenError } from '../../utils/errors';
 import { authService } from '../auth/auth.service';
 import { comparePassword } from '../../utils/password';
 import { recordAuditLog } from '../../middleware/audit';
@@ -537,19 +537,43 @@ export class UsersService {
     userAgent?: string
   ) {
     let userHash: string | null = null;
+    let userRole: Role | null = null;
+
     if (isDbConnected()) {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) throw new NotFoundError('User not found');
       userHash = user.passwordHash;
+      userRole = user.role;
     } else {
       const user = inMemoryDb.users.find((u) => u.id === userId);
       if (!user) throw new NotFoundError('User not found');
       userHash = user.passwordHash;
+      userRole = user.role;
     }
 
     const valid = await comparePassword(passwordPlain, userHash);
     if (!valid) throw new UnauthorizedError('Incorrect password');
 
+    // Block deleting the last admin
+    if (userRole === Role.ADMIN) {
+      if (isDbConnected()) {
+        const activeAdmins = await prisma.user.count({
+          where: { role: Role.ADMIN, isActive: true },
+        });
+        if (activeAdmins <= 1) {
+          throw new ForbiddenError('Cannot delete or deactivate the sole remaining system administrator account');
+        }
+      } else {
+        const activeAdmins = inMemoryDb.users.filter(
+          (u) => u.role === Role.ADMIN && u.isActive
+        ).length;
+        if (activeAdmins <= 1) {
+          throw new ForbiddenError('Cannot delete or deactivate the sole remaining system administrator account');
+        }
+      }
+    }
+
+    const now = new Date();
     if (isDbConnected()) {
       await prisma.user.update({
         where: { id: userId },
@@ -557,13 +581,17 @@ export class UsersService {
       });
       await prisma.refreshToken.updateMany({
         where: { userId, revokedAt: null },
-        data: { revokedAt: new Date() },
+        data: { revokedAt: now },
       });
     } else {
       const user = inMemoryDb.users.find((u) => u.id === userId);
-      if (user) user.isActive = false;
+      if (user) {
+        user.isActive = false;
+        user.tokenVersion = (user.tokenVersion || 1) + 1;
+        user.tokensInvalidatedBefore = now;
+      }
       inMemoryDb.refreshTokens.forEach((t) => {
-        if (t.userId === userId && !t.revokedAt) t.revokedAt = new Date();
+        if (t.userId === userId && !t.revokedAt) t.revokedAt = now;
       });
       inMemoryDb.persistRefreshTokens();
     }
