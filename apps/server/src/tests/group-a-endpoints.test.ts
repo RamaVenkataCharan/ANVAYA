@@ -328,6 +328,30 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
   });
 
   describe('A6: Rejected Provider Resubmission Flow', () => {
+    it('blocks resubmission when account is not in REJECTED state', async () => {
+      // Doctor is initially PENDING, not REJECTED
+      const res = await request(app)
+        .post(`${API}/auth/resubmit-verification`)
+        .set('Authorization', `Bearer ${docToken}`)
+        .send({
+          clinicAddress: 'Attempting to resubmit while pending',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Only rejected provider accounts can resubmit details');
+    });
+
+    it('blocks non-provider roles from resubmission', async () => {
+      const res = await request(app)
+        .post(`${API}/auth/resubmit-verification`)
+        .set('Authorization', `Bearer ${patToken}`)
+        .send({
+          address: 'Patient Address',
+        });
+
+      expect(res.status).toBe(400);
+    });
+
     it('allows a rejected doctor to resubmit credentials', async () => {
       // 1. Admin rejects doctor with reason
       await request(app)
@@ -351,6 +375,15 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
       expect(res.body.data.doctorProfile.verificationStatus).toBe('PENDING');
       expect(res.body.data.doctorProfile.rejectionReason).toBeNull();
       expect(res.body.data.doctorProfile.clinicAddress).toBe('Building 10, Medical Hub, Hyderabad');
+
+      // 3. Resubmission again while now PENDING is blocked
+      const blockRes = await request(app)
+        .post(`${API}/auth/resubmit-verification`)
+        .set('Authorization', `Bearer ${docToken}`)
+        .send({
+          clinicAddress: 'Another update',
+        });
+      expect(blockRes.status).toBe(400);
     });
   });
 
