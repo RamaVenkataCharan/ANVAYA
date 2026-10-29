@@ -316,7 +316,30 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
       expect(res.body.data.length).toBeGreaterThan(0);
     });
 
-    it('marks notification as read', async () => {
+    it('marks notification as read and enforces IDOR ownership check', async () => {
+      // 1. Fetch doctor notifications
+      const notifsRes = await request(app)
+        .get(`${API}/notifications`)
+        .set('Authorization', `Bearer ${docToken}`);
+      const docNotif = notifsRes.body.data.find((n: any) => n.userId === docUserId);
+
+      // 2. Patient attempting to mark Doctor's notification as read should be rejected with 403 Forbidden
+      if (docNotif) {
+        const idorRes = await request(app)
+          .post(`${API}/notifications/${docNotif.id}/read`)
+          .set('Authorization', `Bearer ${patToken}`)
+          .send({});
+        expect(idorRes.status).toBe(403);
+      }
+
+      // 3. Marking non-existent notification returns 404
+      const notFoundRes = await request(app)
+        .post(`${API}/notifications/non-existent-notif-uuid/read`)
+        .set('Authorization', `Bearer ${docToken}`)
+        .send({});
+      expect(notFoundRes.status).toBe(404);
+
+      // 4. Marking own notification or all succeeds
       const res = await request(app)
         .post(`${API}/notifications/all/read`)
         .set('Authorization', `Bearer ${docToken}`)

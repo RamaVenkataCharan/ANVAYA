@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { prisma, isDbConnected } from '../../config/prisma';
 import { inMemoryDb } from '../../db/inMemoryDb';
+import { NotFoundError, ForbiddenError } from '../../utils/errors';
 
 export interface AppNotification {
   id: string;
@@ -56,22 +57,27 @@ export class NotificationService {
   }
 
   /**
-   * Marks a notification as read
+   * Marks a notification as read (with strict IDOR ownership verification)
    */
   async markAsRead(userId: string, notificationId: string): Promise<{ success: boolean }> {
-    const notif = notificationsStore.find(
-      (n) => (n.id === notificationId || notificationId === 'all') && (n.userId === userId || n.userId === 'global')
-    );
-    if (notif) {
-      notif.read = true;
-    }
     if (notificationId === 'all') {
       notificationsStore.forEach((n) => {
         if (n.userId === userId || n.userId === 'global') {
           n.read = true;
         }
       });
+      return { success: true };
     }
+
+    const existing = notificationsStore.find((n) => n.id === notificationId);
+    if (!existing) {
+      throw new NotFoundError('Notification not found');
+    }
+    if (existing.userId !== userId && existing.userId !== 'global') {
+      throw new ForbiddenError('You do not have permission to modify this notification');
+    }
+
+    existing.read = true;
     return { success: true };
   }
 }
