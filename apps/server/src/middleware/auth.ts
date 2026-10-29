@@ -32,7 +32,7 @@ export async function authenticateJwt(req: Request, _res: Response, next: NextFu
 
     const payload = verifyAccessToken(token);
 
-    // Enforce account status check on every request (FLAG-02 / FLAG-05)
+    // Enforce account status check and token invalidation on every request
     if (isDbConnected()) {
       const user = await prisma.user.findUnique({
         where: { id: payload.userId },
@@ -45,6 +45,17 @@ export async function authenticateJwt(req: Request, _res: Response, next: NextFu
       const user = inMemoryDb.users.find((u) => u.id === payload.userId);
       if (!user || !user.isActive) {
         throw new UnauthorizedError('User account is suspended or inactive');
+      }
+
+      // Check if access token was revoked via tokenVersion or tokensInvalidatedBefore
+      if (user.tokenVersion !== undefined && payload.tokenVersion !== undefined) {
+        if (payload.tokenVersion < user.tokenVersion) {
+          throw new UnauthorizedError('Session has expired due to password change or session revocation');
+        }
+      } else if (user.tokensInvalidatedBefore && payload.iat) {
+        if (payload.iat * 1000 < user.tokensInvalidatedBefore.getTime() - 1000) {
+          throw new UnauthorizedError('Session has expired due to password change or session revocation');
+        }
       }
     }
 

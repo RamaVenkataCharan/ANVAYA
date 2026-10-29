@@ -91,7 +91,53 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
       expect(res.body.success).toBe(false);
     });
 
-    it('successfully resets password with valid dev OTP (123456)', async () => {
+    it('returns constant response for non-existent identifier', async () => {
+      const res = await request(app)
+        .post(`${API}/auth/forgot-password/request`)
+        .send({ identifier: 'nonexistent@example.com' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toContain('If an account exists');
+    });
+
+    it('enforces max 5 wrong attempts before locking OTP', async () => {
+      // Re-request OTP
+      await request(app)
+        .post(`${API}/auth/forgot-password/request`)
+        .send({ identifier: patEmail });
+
+      // 4 wrong attempts should fail with invalid code
+      for (let i = 0; i < 4; i++) {
+        const failRes = await request(app)
+          .post(`${API}/auth/forgot-password/verify`)
+          .send({
+            identifier: patEmail,
+            otp: '999999',
+            newPassword: 'TestPassword123',
+          });
+        expect(failRes.status).toBe(400);
+        expect(failRes.body.message).toContain('Invalid verification code');
+      }
+
+      // 5th wrong attempt should lock out
+      const lockRes = await request(app)
+        .post(`${API}/auth/forgot-password/verify`)
+        .send({
+          identifier: patEmail,
+          otp: '999999',
+          newPassword: 'TestPassword123',
+        });
+      expect(lockRes.status).toBe(400);
+      expect(lockRes.body.message).toContain('Maximum verification attempts exceeded');
+    });
+
+    it('successfully resets password with valid dev OTP and enforces single use', async () => {
+      // Re-request OTP for doc
+      await request(app)
+        .post(`${API}/auth/forgot-password/request`)
+        .send({ identifier: docEmail });
+
       const res = await request(app)
         .post(`${API}/auth/forgot-password/verify`)
         .send({
@@ -103,12 +149,42 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
 
+      // Verify single use: reusing same OTP fails
+      const reuseRes = await request(app)
+        .post(`${API}/auth/forgot-password/verify`)
+        .send({
+          identifier: docEmail,
+          otp: '123456',
+          newPassword: 'NewPassword123',
+        });
+      expect(reuseRes.status).toBe(400);
+
+      // Verify old token is now invalidated
+      const oldCheck = await request(app)
+        .get(`${API}/auth/me`)
+        .set('Authorization', `Bearer ${docToken}`);
+      expect(oldCheck.status).toBe(401);
+
       // Verify doctor can log in with new password
       const loginRes = await request(app)
         .post(`${API}/auth/login`)
         .send({ identifier: docEmail, password: 'NewPassword123' });
       expect(loginRes.status).toBe(200);
       docToken = loginRes.body.data.tokens.accessToken;
+    });
+
+    it('ensures DevConsoleOtpProvider refuses to run in production', async () => {
+      const { DevConsoleOtpProvider } = await import('../services/otp/otpProvider');
+      const provider = new DevConsoleOtpProvider();
+      const prevEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        await expect(provider.sendOtp('+919999999999', '123456', 'PASSWORD_RESET')).rejects.toThrow(
+          'DevConsoleOtpProvider is forbidden in production environment'
+        );
+      } finally {
+        process.env.NODE_ENV = prevEnv;
+      }
     });
   });
 
@@ -125,7 +201,7 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
       expect(res.status).toBe(401);
     });
 
-    it('successfully changes password when current password matches', async () => {
+    it('successfully changes password and invalidates active sessions', async () => {
       const res = await request(app)
         .post(`${API}/auth/change-password`)
         .set('Authorization', `Bearer ${docToken}`)
@@ -136,6 +212,19 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+
+      // Verify old token is invalidated
+      const checkOld = await request(app)
+        .get(`${API}/auth/me`)
+        .set('Authorization', `Bearer ${docToken}`);
+      expect(checkOld.status).toBe(401);
+
+      // Re-login doctor with new password
+      const relogin = await request(app)
+        .post(`${API}/auth/login`)
+        .send({ identifier: docEmail, password: 'Password123' });
+      expect(relogin.status).toBe(200);
+      docToken = relogin.body.data.tokens.accessToken;
     });
   });
 
@@ -166,6 +255,19 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+
+      // Verify patToken is invalidated
+      const oldCheck = await request(app)
+        .get(`${API}/auth/me`)
+        .set('Authorization', `Bearer ${patToken}`);
+      expect(oldCheck.status).toBe(401);
+
+      // Re-login patient for remaining tests
+      const patLogin = await request(app)
+        .post(`${API}/auth/login`)
+        .send({ identifier: patEmail, password: 'Password123' });
+      expect(patLogin.status).toBe(200);
+      patToken = patLogin.body.data.tokens.accessToken;
     });
   });
 
@@ -245,3 +347,4 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
     });
   });
 });
+

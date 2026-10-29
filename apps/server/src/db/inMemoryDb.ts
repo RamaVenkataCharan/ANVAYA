@@ -18,6 +18,8 @@ export interface DbUser {
   role: Role;
   isActive: boolean;
   pushToken?: string | null;
+  tokenVersion?: number;
+  tokensInvalidatedBefore?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
