@@ -94,6 +94,35 @@ Because mobile devices cannot reach `localhost`, your development machine and ph
 3. Open **Help & FAQ** -> Test search filter and expandable question cards.
 4. Open **Account Actions** -> Tap **"Generate Data Export"** and verify JSON payload generation.
 
+#### Step 0.7: Group B Patient Flows (Home, Booking, Prescriptions, Bills, Access Log)
+1. **Patient Home Redesign (B1)**:
+   - Log in as patient.
+   - Verify Greeting header with user name and notification bell with unread indicator dot.
+   - Verify "Upcoming visit" hero card with doctor avatar, date/time, and "View details" / "Reschedule" buttons.
+   - Verify 4 Quick Action cards: "Book Appointment", "My Visits", "Prescriptions", "Reports".
+   - Verify "Your health" cards: Vitals and Lab Reports.
+2. **Find Doctor & Book (B2)**:
+   - Tap "Book Appointment" -> Search doctor by name or specialty.
+   - Tap on a doctor card -> Select appointment date chip and time slot chip.
+   - Enter consultation reason -> Tap "Book Appointment" -> Verify confirmation and redirect to appointments list.
+3. **Appointment Detail & Cancellation (B3b)**:
+   - Open appointment detail -> Verify status timeline (SCHEDULED, CONFIRMED, COMPLETED, CANCELLED).
+   - Tap "Cancel Appointment" -> Confirm modal -> Verify status updates to CANCELLED.
+4. **Prescriptions List & QR Code (B4a, B4b)**:
+   - Tap "Prescriptions" -> Filter by ALL, ACTIVE, DISPENSED.
+   - Open prescription detail -> Verify QR code generation for pharmacy scan.
+5. **My Bills & Share Sheet (B5a, B5b)**:
+   - In More -> Tap "Bills" -> View pharmacy bills.
+   - Tap a bill to open receipt breakdown -> Tap "Share / Print Receipt" -> Verify native iOS / Android sharesheet invocation.
+6. **Refill Reminders (B6)**:
+   - In More -> Tap "Refill Reminders" -> Verify repeat intervals -> Tap "Dismiss" to dismiss.
+7. **Record Access Log & Audit History (B8)**:
+   - Navigate to Consent -> Tap 3rd tab **"Access Log"**.
+   - Verify audit entries of healthcare professionals who have viewed medical records.
+8. **Pharmacy Directory & Directions (B9a, B9b)**:
+   - Navigate to Pharmacy Directory -> Tap a store card.
+   - Verify Pharmacy Detail view with phone call and Google Maps directions triggers.
+
 
 ---
 

@@ -41,7 +41,22 @@ interface ConsentItem {
 
 export default function PatientConsentScreen() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'history' | 'audit'>('active');
+
+  // Fetch access history from audit log (Tier B)
+  const {
+    data: accessHistory = [],
+    isLoading: isHistoryLoading,
+    isRefetching: isHistoryRefetching,
+    refetch: refetchHistory,
+  } = useQuery({
+    queryKey: ['consent', 'access-history'],
+    queryFn: async () => {
+      const res = await api.get('/consent/access-history');
+      return res.data?.data || [];
+    },
+    enabled: activeTab === 'audit',
+  });
   const [isGrantModalVisible, setIsGrantModalVisible] = useState(false);
   const [revokingDoctorId, setRevokingDoctorId] = useState<string | null>(null);
 
@@ -215,7 +230,20 @@ export default function PatientConsentScreen() {
               activeTab === 'history' && styles.tabTextActive,
             ]}
           >
-            Revoked History ({pastConsents.length})
+            Revoked ({pastConsents.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'audit' && styles.tabActive]}
+          onPress={() => setActiveTab('audit')}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'audit' && styles.tabTextActive,
+            ]}
+          >
+            Access Log ({accessHistory.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -230,7 +258,59 @@ export default function PatientConsentScreen() {
       </View>
 
       {/* Content */}
-      {isLoading ? (
+      {activeTab === 'audit' ? (
+        isHistoryLoading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={Colors.roles.patient} />
+            <Text style={styles.loadingText}>Loading record access audit history...</Text>
+          </View>
+        ) : accessHistory.length === 0 ? (
+          <View style={styles.centerContainer}>
+            <Text style={styles.emptyIcon}>🛡️</Text>
+            <Text style={styles.emptyTitle}>No Access History</Text>
+            <Text style={styles.emptySubtitle}>
+              No external practitioners or clinics have accessed your medical records yet.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={accessHistory}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isHistoryRefetching}
+                onRefresh={refetchHistory}
+                tintColor={Colors.roles.patient}
+              />
+            }
+            renderItem={({ item }) => (
+              <View style={styles.consentCard}>
+                <View style={styles.consentCardHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.doctorName}>{item.actorName}</Text>
+                    <Text style={styles.doctorSpec}>{item.actorRole || 'DOCTOR'}</Text>
+                  </View>
+                  <View style={[styles.statusPill, styles.statusPillActive]}>
+                    <Text style={[styles.statusPillText, styles.statusTextActive]}>{item.action}</Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Record Accessed:</Text>
+                  <Text style={styles.metaValue}>{item.resourceTitle || item.resource}</Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Timestamp:</Text>
+                  <Text style={styles.metaValue}>
+                    {new Date(item.timestamp).toLocaleString('en-IN')}
+                  </Text>
+                </View>
+              </View>
+            )}
+          />
+        )
+      ) : isLoading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={Colors.roles.patient} />
           <Text style={styles.loadingText}>Loading consent permissions...</Text>

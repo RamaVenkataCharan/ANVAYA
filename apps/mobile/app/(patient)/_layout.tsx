@@ -96,6 +96,12 @@ export default function PatientLayout() {
         }}
       />
       <Tabs.Screen
+        name="shop/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="consent"
         options={{
           href: null,
@@ -109,6 +115,48 @@ export default function PatientLayout() {
       />
       <Tabs.Screen
         name="prescription/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="prescriptions"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="appointment/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="find-doctor"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="bills"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="bill/[id]"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="refills"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="record/[id]"
         options={{
           href: null,
         }}

@@ -195,6 +195,76 @@ export class ConsentService {
     }
   }
 
+  /**
+   * Retrieves audit log history of external accesses to this patient's medical records (Tier B)
+   * Scoped strictly to records owned by the calling patient.
+   */
+  async getAccessHistory(patientId: string, patientUserId: string) {
+    if (isDbConnected()) {
+      const [reports, prescriptions] = await Promise.all([
+        prisma.report.findMany({ where: { patientId }, select: { id: true, title: true } }),
+        prisma.prescription.findMany({ where: { patientId }, select: { id: true, code: true } }),
+      ]);
+      const reportMap = new Map(reports.map((r) => [r.id, r.title]));
+      const prescriptionMap = new Map(prescriptions.map((p) => [p.id, p.code]));
+      const resourceIds = [...reportMap.keys(), ...prescriptionMap.keys()];
+
+      const logs = await prisma.auditLog.findMany({
+        where: {
+          resourceId: { in: resourceIds },
+          NOT: { userId: patientUserId },
+        },
+        include: {
+          user: { select: { name: true, role: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      });
+
+      return logs.map((l) => ({
+        id: l.id,
+        action: l.action,
+        resource: l.resource,
+        resourceId: l.resourceId,
+        resourceTitle: reportMap.get(l.resourceId || '') || prescriptionMap.get(l.resourceId || '') || 'Clinical Record',
+        actorName: l.user?.name || 'Authorized Practitioner',
+        actorRole: l.user?.role || 'DOCTOR',
+        timestamp: l.createdAt.toISOString(),
+      }));
+    } else {
+      const patientReports = inMemoryDb.reports.filter((r) => r.patientId === patientId);
+      const patientPrescriptions = inMemoryDb.prescriptions.filter((p) => p.patientId === patientId);
+
+      const reportMap = new Map(patientReports.map((r) => [r.id, r.title]));
+      const prescriptionMap = new Map(patientPrescriptions.map((p) => [p.id, p.code]));
+      const targetIds = new Set([...reportMap.keys(), ...prescriptionMap.keys()]);
+
+      const accessLogs = inMemoryDb.auditLogs
+        .filter(
+          (l) =>
+            l.resourceId &&
+            targetIds.has(l.resourceId) &&
+            l.userId !== patientUserId
+        )
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .slice(0, 50);
+
+      return accessLogs.map((l) => {
+        const actor = inMemoryDb.users.find((u) => u.id === l.userId);
+        return {
+          id: l.id,
+          action: l.action,
+          resource: l.resource,
+          resourceId: l.resourceId,
+          resourceTitle: reportMap.get(l.resourceId || '') || prescriptionMap.get(l.resourceId || '') || 'Clinical Record',
+          actorName: actor?.name || 'Authorized Provider',
+          actorRole: actor?.role || 'DOCTOR',
+          timestamp: l.createdAt.toISOString(),
+        };
+      });
+    }
+  }
+
   private formatConsent(c: DbConsent) {
     const doctor = inMemoryDb.doctors.find((d) => d.id === c.doctorId);
     const doctorUser = doctor ? inMemoryDb.users.find((u) => u.id === doctor.userId) : null;

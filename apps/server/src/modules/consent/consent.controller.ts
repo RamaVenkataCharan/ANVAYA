@@ -129,6 +129,39 @@ export class ConsentController {
       next(error);
     }
   }
+
+  /**
+   * GET /consent/access-history
+   * View audit trail of external practitioners accessing this patient's records (Tier B)
+   */
+  async getAccessHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const authReq = req as AuthRequest;
+      const { patientId, userId } = authReq.user;
+
+      if (!patientId) {
+        res.status(403).json({
+          success: false,
+          error: 'ForbiddenError',
+          message: 'Patient profile not found in token',
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      const history = await consentService.getAccessHistory(patientId, userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Access history retrieved successfully',
+        data: history,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 export const consentController = new ConsentController();

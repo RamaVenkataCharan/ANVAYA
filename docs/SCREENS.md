@@ -126,24 +126,24 @@ Status Legend:
 
 ---
 
-### Group B: Patient Screens
+### Group B: Patient Screens — COMPLETED
 
 | ID | Screen Title | Role | Route File Path | Endpoints Used | Status | Notes & Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **B1** | Patient Home Dashboard | Patient | `app/(patient)/index.tsx` | `GET /appointments`, `GET /prescriptions`, `GET /refills` | **PARTIAL** | Redesign with Next Appointment card, quick actions grid, vitals/reports cards |
-| **B2** | Find Doctor & Book | Patient | `app/(patient)/find-doctor.tsx` | `GET /doctors`, `POST /appointments` | **MISSING** | Search by name/specialty, select date/time, confirm appointment |
+| **B1** | Patient Home Dashboard | Patient | `app/(patient)/index.tsx` | `GET /appointments`, `GET /prescriptions`, `GET /refills` | **EXISTS** | Redesigned matching mockup: Next Appointment hero card, quick actions grid, vitals/reports cards |
+| **B2** | Find Doctor & Book | Patient | `app/(patient)/find-doctor.tsx` | `GET /doctors`, `POST /appointments` | **EXISTS** | Search by name/specialty, 4-day calendar chips, time slots, booking mutation |
 | **B3a** | Appointments List | Patient | `app/(patient)/appointments.tsx` | `GET /appointments` | **EXISTS** | Filter by upcoming/past, pull-to-refresh |
-| **B3b** | Appointment Detail | Patient | `app/(patient)/appointment/[id].tsx` | `GET /appointments/:id`, `PATCH /appointments/:id/status` | **MISSING** | Status timeline, reschedule request, cancel appointment |
-| **B4a** | Prescriptions History | Patient | `app/(patient)/prescriptions.tsx` | `GET /prescriptions` | **MISSING** | Dedicated filterable list (active/dispensed, date range) |
+| **B3b** | Appointment Detail | Patient | `app/(patient)/appointment/[id].tsx` | `GET /appointments/:id`, `PATCH /appointments/:id/status` | **EXISTS** | Status timeline, reschedule request, cancellation with confirmation |
+| **B4a** | Prescriptions History | Patient | `app/(patient)/prescriptions.tsx` | `GET /prescriptions` | **EXISTS** | Dedicated filterable list (active/dispensed, date range), navigation to detail |
 | **B4b** | Prescription Detail | Patient | `app/(patient)/prescription/[id].tsx` | `GET /prescriptions/:id` | **EXISTS** | Dynamic QR code, medicine list, doctor clinic info |
-| **B5a** | My Bills List | Patient | `app/(patient)/bills.tsx` | `GET /billing/my-bills` | **MISSING** | List of pharmacy bills, payment status badges |
-| **B5b** | Bill Detail & Share | Patient | `app/(patient)/bill/[id].tsx` | `GET /billing/bills/:id` | **MISSING** | Itemized breakdown, PDF export and native sharesheet |
-| **B6** | Refill Reminders List | Patient | `app/(patient)/refills.tsx` | `GET /refills`, `DELETE /refills/:id` | **MISSING** | Due dates, recurring medicine notifications |
+| **B5a** | My Bills List | Patient | `app/(patient)/bills.tsx` | `GET /billing/my-bills` | **EXISTS** | List of pharmacy bills, payment status badges |
+| **B5b** | Bill Detail & Share | Patient | `app/(patient)/bill/[id].tsx` | `GET /billing/bills/:id` | **EXISTS** | Itemized breakdown, receipt share via native Share sheet |
+| **B6** | Refill Reminders List | Patient | `app/(patient)/refills.tsx` | `GET /refills`, `DELETE /refills/:id` | **EXISTS** | Due dates, recurring medicine intervals, dismiss action |
 | **B7a** | Medical Records List | Patient | `app/(patient)/records.tsx` | `GET /reports`, `POST /reports/upload` | **EXISTS** | File picker, upload progress, preview modal |
-| **B7b** | Record Detail & Access | Patient | `app/(patient)/record/[id].tsx` | `GET /reports/:id` | **MISSING** | File metadata, list of authorized doctors |
-| **B8** | Consent & Access History | Patient | `app/(patient)/consent.tsx` | `GET /consent/active`, `GET /reports/audit/access-history` (Tier B) | **PARTIAL** | Add audit log view: "Who accessed my medical records" |
-| **B9a** | Pharmacy Directory | Patient | `app/(patient)/shops.tsx` | `GET /shops` | **EXISTS** | Directory search with operating hours |
-| **B9b** | Pharmacy Detail | Patient | `app/(patient)/shop/[id].tsx` | `GET /shops/:id` | **MISSING** | Detail view with direct phone call & maps directions |
+| **B7b** | Record Detail & Access | Patient | `app/(patient)/record/[id].tsx` | `GET /reports/:id` | **EXISTS** | File metadata, list of authorized doctors with access |
+| **B8** | Consent & Access History | Patient | `app/(patient)/consent.tsx` | `GET /consent/active`, `GET /consent/access-history` (Tier B) | **EXISTS** | 3-tab consent manager: Authorized, Revoked, and Access Log with audit history |
+| **B9a** | Pharmacy Directory | Patient | `app/(patient)/shops.tsx` | `GET /shops` | **EXISTS** | Directory search with operating hours and touch navigation to detail |
+| **B9b** | Pharmacy Detail | Patient | `app/(patient)/shop/[id].tsx` | `GET /shops/:id` | **EXISTS** | Detail view with direct phone call & Google Maps directions |
 | **B10** | Patient More Tab | Patient | `app/(patient)/more.tsx` | None (Navigation hub) | **EXISTS** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
 
 ---

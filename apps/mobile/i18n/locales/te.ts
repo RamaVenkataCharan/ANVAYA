@@ -194,5 +194,114 @@ export const te = {
     signOutSubtitle: 'ఈ పరికరంలో ప్రస్తుత సెషన్ నుండి లాగ్ అవుట్ చేయండి', // machine-drafted, needs native review
     signOutConfirm: 'మీరు ఖచ్చితంగా లాగ్ అవుట్ చేయాలనుకుంటున్నారా?', // machine-drafted, needs native review
   },
+  patientHome: {
+    greeting: 'శుభోదయం,', // machine-drafted, needs native review
+    upcomingVisit: 'రాబోయే సందర్శన', // machine-drafted, needs native review
+    viewDetails: 'వివరాలు చూడండి', // machine-drafted, needs native review
+    reschedule: 'మరో సమయం ఎంచుకోండి', // machine-drafted, needs native review
+    noUpcomingVisits: 'రాబోయే అపాయింట్‌మెంట్‌లు ఏవీ లేవు.', // machine-drafted, needs native review
+    bookFirstConsult: 'కన్సల్టేషన్ బుక్ చేయండి', // machine-drafted, needs native review
+    quickActions: 'శీఘ్ర చర్యలు', // machine-drafted, needs native review
+    bookAppointment: 'అపాయింట్‌మెంట్ బుక్', // machine-drafted, needs native review
+    myVisits: 'నా సందర్శనలు', // machine-drafted, needs native review
+    prescriptions: 'ప్రిస్క్రిప్షన్లు', // machine-drafted, needs native review
+    reports: 'రిపోర్టులు', // machine-drafted, needs native review
+    yourHealth: 'మీ ఆరోగ్యం', // machine-drafted, needs native review
+    vitals: 'వైటల్స్', // machine-drafted, needs native review
+    vitalsDesc: 'మీ ఆరోగ్యాన్ని పర్యవేక్షించండి', // machine-drafted, needs native review
+    labReports: 'ల్యాబ్ రిపోర్టులు', // machine-drafted, needs native review
+    labReportsDesc: 'మీ పరీక్ష ఫలితాలను చూడండి', // machine-drafted, needs native review
+    activePrescriptions: 'క్రియాశీల ప్రిస్క్రిప్షన్లు', // machine-drafted, needs native review
+    refillsDue: 'రీఫిల్ చేయవలసినవి', // machine-drafted, needs native review
+  },
+  patientAppointments: {
+    title: 'నా అపాయింట్‌మెంట్లు', // machine-drafted, needs native review
+    upcoming: 'రాబోయేవి', // machine-drafted, needs native review
+    past: 'గత సందర్శనలు', // machine-drafted, needs native review
+    noAppointments: 'అపాయింట్‌మెంట్‌లు ఏవీ నమోదు కాలేదు.', // machine-drafted, needs native review
+    bookDoctor: 'డాక్టర్‌ను కనుగొని బుక్ చేయండి', // machine-drafted, needs native review
+    detailTitle: 'అపాయింట్‌మెంట్ వివరాలు', // machine-drafted, needs native review
+    dateTime: 'షెడ్యూల్ సమయం', // machine-drafted, needs native review
+    clinic: 'క్లినిక్ చిరునామా', // machine-drafted, needs native review
+    status: 'స్థితి', // machine-drafted, needs native review
+    notes: 'క్లినికల్ గమనికలు', // machine-drafted, needs native review
+    rescheduleRequest: 'సమయం మార్చమని అభ్యర్థించండి', // machine-drafted, needs native review
+    cancelAppointment: 'అపాయింట్‌మెంట్ రద్దు చేయండి', // machine-drafted, needs native review
+    cancelConfirmPrompt: 'మీరు ఖచ్చితంగా ఈ అపాయింట్‌మెంట్‌ను రద్దు చేయాలనుకుంటున్నారా?', // machine-drafted, needs native review
+    reschedulePrompt: 'దయచేసి కొత్త తేదీ మరియు సమయాన్ని ఎంచుకోండి:', // machine-drafted, needs native review
+    cancelSuccess: 'అపాయింట్‌మెంట్ విజయవంతంగా రద్దు చేయబడింది.', // machine-drafted, needs native review
+    rescheduleSuccess: 'సమయ మార్పు అభ్యర్థన సమర్పించబడింది.', // machine-drafted, needs native review
+  },
+  findDoctor: {
+    title: 'డాక్టర్‌ను కనుగొనండి', // machine-drafted, needs native review
+    searchPlaceholder: 'డాక్టర్ పేరు లేదా స్పెషలైజేషన్ ద్వారా శోధించండి...', // machine-drafted, needs native review
+    bookConsultation: 'కన్సల్టేషన్ బుక్ చేయండి', // machine-drafted, needs native review
+    selectDateTime: 'తేదీని ఎంచుకోండి', // machine-drafted, needs native review
+    selectTimeSlot: 'సమయాన్ని ఎంచుకోండి', // machine-drafted, needs native review
+    reasonLabel: 'సందర్శన కారణం (ఐచ్ఛికం)', // machine-drafted, needs native review
+    reasonPlaceholder: 'ఉదా. జ్వరం, ఫాలో-అప్ సమీక్ష', // machine-drafted, needs native review
+    confirmBooking: 'అపాయింట్‌మెంట్ నిర్ధారించండి', // machine-drafted, needs native review
+    bookingSuccess: 'అపాయింట్‌మెంట్ విజయవంతంగా బుక్ చేయబడింది!', // machine-drafted, needs native review
+    emptySearch: 'మీ శోధనకు తగిన డాక్టర్లు కనుగొనబడలేదు.', // machine-drafted, needs native review
+  },
+  patientPrescriptions: {
+    title: 'ప్రిస్క్రిప్షన్ల ఆర్కైవ్', // machine-drafted, needs native review
+    filterAll: 'అన్నీ', // machine-drafted, needs native review
+    filterActive: 'క్రియాశీలం', // machine-drafted, needs native review
+    filterDispensed: 'డిస్పెన్స్ చేయబడినవి', // machine-drafted, needs native review
+    filterCancelled: 'రద్దు చేయబడినవి', // machine-drafted, needs native review
+    noPrescriptions: 'ప్రిస్క్రిప్షన్లు ఏవీ లేవు.', // machine-drafted, needs native review
+    itemsCount: 'మందులు', // machine-drafted, needs native review
+    dispensedOn: 'డిస్పెన్స్ చేసిన తేదీ', // machine-drafted, needs native review
+    issuedOn: 'జారీ చేసిన తేదీ', // machine-drafted, needs native review
+  },
+  patientBills: {
+    title: 'నా ఫార్మసీ బిల్లులు', // machine-drafted, needs native review
+    noBills: 'బిల్లులు ఏవీ నమోదు కాలేదు.', // machine-drafted, needs native review
+    billDetail: 'రసీదు మరియు ఇన్వాయిస్ వివరాలు', // machine-drafted, needs native review
+    invoiceNumber: 'ఇన్‌వాయిస్ సంఖ్య', // machine-drafted, needs native review
+    issuedBy: 'ఫార్మసీ', // machine-drafted, needs native review
+    subtotal: 'ఉపమొత్తం', // machine-drafted, needs native review
+    tax: 'పన్నులు & జీఎస్టీ', // machine-drafted, needs native review
+    total: 'మొత్తం', // machine-drafted, needs native review
+    paymentStatus: 'చెల్లింపు స్థితి', // machine-drafted, needs native review
+    paymentMethod: 'చెల్లింపు విధానం', // machine-drafted, needs native review
+    sharePdf: 'రసీదు షేర్ చేయండి / ప్రింట్ చేయండి', // machine-drafted, needs native review
+    pdfSuccess: 'రసీదు సిద్ధంగా ఉంది.', // machine-drafted, needs native review
+  },
+  patientRefills: {
+    title: 'రీఫిల్ రిమైండర్లు', // machine-drafted, needs native review
+    noRefills: 'రీఫిల్ రిమైండర్లు ఏవీ లేవు.', // machine-drafted, needs native review
+    dueIn: 'రీఫిల్ గడువు', // machine-drafted, needs native review
+    dismissReminder: 'రిమైండర్ తీసివేయండి', // machine-drafted, needs native review
+    dismissConfirm: 'ఈ రీఫిల్ రిమైండర్‌ను తీసివేయాలా?', // machine-drafted, needs native review
+    medicineName: 'మందు పేరు', // machine-drafted, needs native review
+    scheduleInterval: 'పునరావృత వ్యవధి', // machine-drafted, needs native review
+  },
+  patientRecords: {
+    recordDetail: 'వైద్య రికార్డు వివరాలు', // machine-drafted, needs native review
+    reportType: 'పత్రం రకం', // machine-drafted, needs native review
+    uploadDate: 'అప్‌లోడ్ తేదీ', // machine-drafted, needs native review
+    fileSize: 'ఫైల్ పరిమాణం', // machine-drafted, needs native review
+    accessHeader: 'యాక్సెస్ ఉన్న డాక్టర్లు', // machine-drafted, needs native review
+    noAuthorizedDoctors: 'ఈ రికార్డును చూడటానికి ఏ డాక్టర్‌కూ అనుమతి లేదు.', // machine-drafted, needs native review
+    viewDocument: 'పత్రాన్ని చూడండి', // machine-drafted, needs native review
+    downloadDocument: 'ఫైల్‌ను డౌన్‌లోడ్ చేయండి', // machine-drafted, needs native review
+  },
+  patientConsent: {
+    accessHistoryTab: 'యాక్సెస్ లాగ్', // machine-drafted, needs native review
+    accessHistoryDesc: 'మీ రికార్డులను చూసిన ధృవీకరించబడిన ఆరోగ్య నిపుణుల ఆడిట్ లాగ్.', // machine-drafted, needs native review
+    noAccessHistory: 'మీ రికార్డుల కోసం బాహ్య యాక్సెస్‌లు ఏవీ ఇంకా నమోదు కాలేదు.', // machine-drafted, needs native review
+    accessedBy: 'యాక్సెస్ చేసినవారు', // machine-drafted, needs native review
+    actionViewed: 'రిపోర్టును చూశారు', // machine-drafted, needs native review
+  },
+  shopDetail: {
+    title: 'ఫార్మసీ సమాచారం', // machine-drafted, needs native review
+    license: 'డ్రగ్ లైసెన్స్ సంఖ్య', // machine-drafted, needs native review
+    timings: 'పనివేళలు', // machine-drafted, needs native review
+    phone: 'ఫోన్ నంబర్', // machine-drafted, needs native review
+    address: 'దుకాణం చిరునామా', // machine-drafted, needs native review
+    callPharmacy: 'ఫార్మసీకి కాల్ చేయండి', // machine-drafted, needs native review
+    getDirections: 'దిశలను పొందండి', // machine-drafted, needs native review
+  },
 };
-

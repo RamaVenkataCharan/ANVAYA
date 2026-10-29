@@ -6,30 +6,103 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
-import { StatusBadge } from '../../components/ui';
+import { api } from '../../services/api';
 
 export default function PatientDashboard() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, refreshMe } = useAuthStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const patient = user?.patientProfile;
+
+  // 1. Fetch upcoming appointments
+  const {
+    data: appointments = [],
+    isLoading: isApptsLoading,
+    refetch: refetchAppts,
+  } = useQuery({
+    queryKey: ['patient', 'appointments', 'upcoming'],
+    queryFn: async () => {
+      const res = await api.get('/appointments');
+      return res.data.data || [];
+    },
+  });
+
+  // 2. Fetch active prescriptions
+  const {
+    data: prescriptions = [],
+    refetch: refetchRx,
+  } = useQuery({
+    queryKey: ['patient', 'prescriptions'],
+    queryFn: async () => {
+      const res = await api.get('/prescriptions');
+      return res.data.data || [];
+    },
+  });
+
+  // 3. Fetch notifications for badge indicator
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const res = await api.get('/notifications');
+      return res.data.data || [];
+    },
+  });
+
+  const unreadNotifsCount = notifications.filter((n: any) => !n.read).length;
 
   const onRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshMe();
+      await Promise.all([refreshMe(), refetchAppts(), refetchRx()]);
     } finally {
       setIsRefreshing(false);
     }
   };
 
+  // Find next upcoming appointment
+  const nextVisit = appointments
+    .filter((a: any) => a.status === 'SCHEDULED' || a.status === 'CONFIRMED')
+    .sort((a: any, b: any) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
+
+  const activeRxCount = prescriptions.filter((p: any) => p.status === 'ACTIVE').length;
+
+  const formatVisitDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatVisitTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return '';
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -42,141 +115,209 @@ export default function PatientDashboard() {
           />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerSubtitle}>PATIENT WALLET</Text>
-            <Text style={styles.headerTitle}>{user?.name}</Text>
-          </View>
-          <View
-            style={styles.roleBadge}
-            accessibilityRole="text"
-            accessibilityLabel="Role: Registered Patient"
-          >
-            <Text style={styles.roleBadgeText}>👤 Patient</Text>
-          </View>
-        </View>
-
-        {/* Patient Profile Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardSectionTitle}>Personal Health Profile</Text>
-            <StatusBadge label="✓ VERIFIED" variant="success" />
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Email</Text>
-            <Text style={styles.detailValue}>{user?.email}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Phone</Text>
-            <Text style={styles.detailValue}>{user?.phone}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Gender</Text>
-            <Text style={styles.detailValue}>{patient?.gender || 'Not specified'}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Blood Group</Text>
-            <Text style={styles.detailValueHighlight}>
-              {patient?.bloodGroup || 'Not provided'}
-            </Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Address</Text>
-            <Text style={styles.detailValue}>
-              {patient?.address || 'Not specified'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <Text style={styles.sectionHeader}>Healthcare Services & Features</Text>
-        <View style={styles.actionsGrid}>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(patient)/wallet')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>📱</Text>
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Digital Prescription Wallet</Text>
-              <Text style={styles.actionDesc}>
-                View active e-prescriptions, medications, and show dynamic QR tokens at pharmacies
+        {/* Top Header Bar */}
+        <View style={styles.topHeader}>
+          <View style={styles.userProfileRow}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'P'}
               </Text>
             </View>
+            <View>
+              <Text style={styles.greetingText}>{t('patientHome.greeting')}</Text>
+              <Text style={styles.userNameText}>{user?.name || 'Patient'}</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.notificationBtn}
+            onPress={() => router.push('/(common)/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+          >
+            <Text style={styles.bellIcon}>🔔</Text>
+            {unreadNotifsCount > 0 && <View style={styles.unreadBadgeDot} />}
+          </TouchableOpacity>
+        </View>
+
+        {/* Hero Card: Upcoming Visit */}
+        {isApptsLoading ? (
+          <View style={styles.heroLoadingBox}>
+            <ActivityIndicator size="small" color={Colors.roles.patient} />
+          </View>
+        ) : nextVisit ? (
+          <View style={styles.heroCard}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroTextCol}>
+                <Text style={styles.heroSubLabel}>{t('patientHome.upcomingVisit')}</Text>
+                <Text style={styles.doctorName}>
+                  {nextVisit.doctor?.user?.name || 'Dr. Practitioner'}
+                </Text>
+                <Text style={styles.doctorSpecialty}>
+                  {nextVisit.doctor?.specialization || 'Consultant Physician'}
+                </Text>
+              </View>
+              <View style={styles.doctorAvatarBox}>
+                <Text style={styles.doctorAvatarEmoji}>🩺</Text>
+              </View>
+            </View>
+
+            <View style={styles.visitTimeRow}>
+              <View style={styles.timeTag}>
+                <Text style={styles.timeTagIcon}>📅</Text>
+                <Text style={styles.timeTagText}>{formatVisitDate(nextVisit.dateTime)}</Text>
+              </View>
+              <View style={styles.timeTag}>
+                <Text style={styles.timeTagIcon}>⏰</Text>
+                <Text style={styles.timeTagText}>{formatVisitTime(nextVisit.dateTime)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.heroActionRow}>
+              <TouchableOpacity
+                style={styles.heroPrimaryBtn}
+                onPress={() => router.push(`/(patient)/appointment/${nextVisit.id}` as any)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('patientHome.viewDetails')}
+              >
+                <Text style={styles.heroPrimaryBtnText}>{t('patientHome.viewDetails')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.heroSecondaryBtn}
+                onPress={() => router.push(`/(patient)/appointment/${nextVisit.id}` as any)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('patientHome.reschedule')}
+              >
+                <Text style={styles.heroSecondaryBtnText}>{t('patientHome.reschedule')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.emptyHeroCard}>
+            <Text style={styles.emptyHeroEmoji}>🗓️</Text>
+            <Text style={styles.emptyHeroTitle}>{t('patientHome.noUpcomingVisits')}</Text>
+            <TouchableOpacity
+              style={styles.emptyHeroBtn}
+              onPress={() => router.push('/(patient)/find-doctor')}
+              accessibilityRole="button"
+              accessibilityLabel={t('patientHome.bookFirstConsult')}
+            >
+              <Text style={styles.emptyHeroBtnText}>{t('patientHome.bookFirstConsult')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Quick Actions Horizontal Row */}
+        <View style={styles.quickActionsContainer}>
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => router.push('/(patient)/find-doctor')}
+            accessibilityRole="button"
+            accessibilityLabel={t('patientHome.bookAppointment')}
+          >
+            <View style={styles.quickActionIconBox}>
+              <Text style={styles.quickActionEmoji}>📅</Text>
+            </View>
+            <Text style={styles.quickActionText} numberOfLines={2}>
+              {t('patientHome.bookAppointment')}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionCard}
+            style={styles.quickActionCard}
             onPress={() => router.push('/(patient)/appointments')}
-            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('patientHome.myVisits')}
           >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>📅</Text>
+            <View style={styles.quickActionIconBox}>
+              <Text style={styles.quickActionEmoji}>📋</Text>
             </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Doctor Consultations</Text>
-              <Text style={styles.actionDesc}>
-                Schedule visits with verified physicians and manage upcoming appointments
-              </Text>
-            </View>
+            <Text style={styles.quickActionText} numberOfLines={2}>
+              {t('patientHome.myVisits')}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionCard}
+            style={styles.quickActionCard}
+            onPress={() => router.push('/(patient)/prescriptions')}
+            accessibilityRole="button"
+            accessibilityLabel={t('patientHome.prescriptions')}
+          >
+            <View style={styles.quickActionIconBox}>
+              <Text style={styles.quickActionEmoji}>💊</Text>
+            </View>
+            <Text style={styles.quickActionText} numberOfLines={2}>
+              {t('patientHome.prescriptions')}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => router.push('/(patient)/records')}
+            accessibilityRole="button"
+            accessibilityLabel={t('patientHome.reports')}
+          >
+            <View style={styles.quickActionIconBox}>
+              <Text style={styles.quickActionEmoji}>📁</Text>
+            </View>
+            <Text style={styles.quickActionText} numberOfLines={2}>
+              {t('patientHome.reports')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* "Your health" Section */}
+        <Text style={styles.sectionHeading}>{t('patientHome.yourHealth')}</Text>
+        <View style={styles.healthCardsRow}>
+          <TouchableOpacity
+            style={styles.healthCard}
             onPress={() => router.push('/(patient)/records')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('patientHome.vitals')}
           >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>📁</Text>
+            <View style={[styles.healthIconCircle, { backgroundColor: '#ffebe8' }]}>
+              <Text style={styles.healthEmoji}>❤️</Text>
             </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Medical Vault & Bills</Text>
-              <Text style={styles.actionDesc}>
-                Upload lab reports, diagnostic scans, and view pharmacy invoices
-              </Text>
-            </View>
+            <Text style={styles.healthCardTitle}>{t('patientHome.vitals')}</Text>
+            <Text style={styles.healthCardSubtitle}>{t('patientHome.vitalsDesc')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(patient)/shops')}
+            style={styles.healthCard}
+            onPress={() => router.push('/(patient)/records')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('patientHome.labReports')}
           >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>🏥</Text>
+            <View style={[styles.healthIconCircle, { backgroundColor: '#e2f4f2' }]}>
+              <Text style={styles.healthEmoji}>🧪</Text>
             </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Pharmacy Directory</Text>
-              <Text style={styles.actionDesc}>
-                Find verified medical stores, check operating hours, call, or get directions
-              </Text>
-            </View>
+            <Text style={styles.healthCardTitle}>{t('patientHome.labReports')}</Text>
+            <Text style={styles.healthCardSubtitle}>{t('patientHome.labReportsDesc')}</Text>
           </TouchableOpacity>
+        </View>
 
+        {/* Active Prescriptions & Pharmacy Services Shortcut */}
+        <View style={styles.servicesBanner}>
+          <View style={styles.servicesLeft}>
+            <Text style={styles.servicesBannerTitle}>
+              {activeRxCount} {t('patientHome.activePrescriptions')}
+            </Text>
+            <Text style={styles.servicesBannerDesc}>
+              View digital QR barcodes for contactless pharmacy dispensing
+            </Text>
+          </View>
           <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(patient)/consent')}
-            activeOpacity={0.8}
+            style={styles.servicesBannerBtn}
+            onPress={() => router.push('/(patient)/wallet')}
+            accessibilityRole="button"
+            accessibilityLabel="Open Digital Wallet"
           >
-            <View style={styles.actionIconContainer}>
-              <Text style={styles.actionIcon}>🛡️</Text>
-            </View>
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Clinical Consent Hub</Text>
-              <Text style={styles.actionDesc}>
-                Authorize or revoke access to your health documents with zero-trust privacy
-              </Text>
-            </View>
+            <Text style={styles.servicesBannerBtnText}>Open QR Wallet →</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -187,153 +328,328 @@ export default function PatientDashboard() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#f7faf9',
   },
   scrollContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 40,
   },
-  header: {
+  topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    paddingTop: 8,
+    marginTop: 4,
   },
-  headerSubtitle: {
-    fontSize: 11,
+  userProfileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#d8eee8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 20,
     fontWeight: '700',
-    color: Colors.roles.patient,
-    letterSpacing: 1.5,
-    marginBottom: 2,
+    color: '#0e4a42',
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+  greetingText: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    fontWeight: '500',
+  },
+  userNameText: {
+    fontSize: 20,
+    fontWeight: '700',
     color: Colors.text.primary,
   },
-  roleBadge: {
-    backgroundColor: Colors.roles.patientBackground,
-    borderColor: Colors.roles.patient,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  roleBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.roles.patient,
-  },
-  card: {
+  notificationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 20,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
-  cardSectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.text.primary,
+  bellIcon: {
+    fontSize: 18,
   },
-  verifiedTag: {
-    backgroundColor: Colors.status.successBackground,
-    borderColor: Colors.status.success,
+  unreadBadgeDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.status.error,
+  },
+  heroLoadingBox: {
+    height: 180,
+    backgroundColor: '#eaf6f2',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  heroCard: {
+    backgroundColor: '#e7f5f0',
+    borderRadius: 22,
+    padding: 18,
+    marginBottom: 20,
     borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    borderColor: '#cceadc',
   },
-  verifiedText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Colors.status.success,
-    letterSpacing: 0.5,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 14,
-  },
-  detailRow: {
+  heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  heroTextCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  heroSubLabel: {
+    fontSize: 12,
+    color: '#346d64',
+    fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'capitalize',
+  },
+  doctorName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0c3832',
+    marginBottom: 2,
+  },
+  doctorSpecialty: {
+    fontSize: 13,
+    color: '#497e75',
+    fontWeight: '500',
+  },
+  doctorAvatarBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#d2ebdf',
   },
-  detailLabel: {
-    fontSize: 13,
-    color: Colors.text.muted,
+  doctorAvatarEmoji: {
+    fontSize: 26,
   },
-  detailValue: {
+  visitTimeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  timeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffffcc',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  timeTagIcon: {
     fontSize: 13,
+  },
+  timeTagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1a4e47',
+  },
+  heroActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  heroPrimaryBtn: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#0c3832',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroPrimaryBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  heroSecondaryBtn: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#b4ded0',
+  },
+  heroSecondaryBtnText: {
+    color: '#0c3832',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyHeroCard: {
+    backgroundColor: '#e7f5f0',
+    borderRadius: 22,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#cceadc',
+  },
+  emptyHeroEmoji: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  emptyHeroTitle: {
+    fontSize: 14,
+    color: '#2a5a52',
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyHeroBtn: {
+    height: 44,
+    paddingHorizontal: 20,
+    backgroundColor: '#0c3832',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyHeroBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 8,
+  },
+  quickActionCard: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minHeight: 88,
+    justifyContent: 'center',
+  },
+  quickActionIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#f0f5f4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  quickActionEmoji: {
+    fontSize: 20,
+  },
+  quickActionText: {
+    fontSize: 11,
     fontWeight: '600',
     color: Colors.text.primary,
-    maxWidth: '60%',
-    textAlign: 'right',
+    textAlign: 'center',
+    lineHeight: 14,
   },
-  detailValueHighlight: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.roles.patient,
-  },
-  sectionHeader: {
-    fontSize: 15,
+  sectionHeading: {
+    fontSize: 16,
     fontWeight: '700',
     color: Colors.text.primary,
     marginBottom: 12,
   },
-  actionsGrid: {
+  healthCardsRow: {
+    flexDirection: 'row',
     gap: 12,
     marginBottom: 20,
   },
-  actionCard: {
-    flexDirection: 'row',
+  healthCard: {
+    flex: 1,
     backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-    alignItems: 'center',
-    gap: 14,
   },
-  actionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: Colors.surfaceElevated,
+  healthIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
+    marginBottom: 10,
   },
-  actionIcon: {
-    fontSize: 22,
+  healthEmoji: {
+    fontSize: 18,
   },
-  actionContent: {
-    flex: 1,
-  },
-  actionTitle: {
+  healthCardTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: Colors.text.primary,
     marginBottom: 4,
   },
-  actionDesc: {
+  healthCardSubtitle: {
     fontSize: 12,
-    color: Colors.text.muted,
+    color: Colors.text.secondary,
     lineHeight: 16,
+  },
+  servicesBanner: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    flexDirection: 'column',
+    gap: 12,
+  },
+  servicesLeft: {
+    flex: 1,
+  },
+  servicesBannerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  servicesBannerDesc: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    lineHeight: 16,
+  },
+  servicesBannerBtn: {
+    height: 44,
+    backgroundColor: '#f0f8f6',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#cce5de',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  servicesBannerBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0e4a42',
   },
 });

@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
@@ -30,6 +31,7 @@ interface ShopItem {
 }
 
 export default function PatientShopsScreen() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
 
   // 1. Fetch verified shops
@@ -148,7 +150,11 @@ export default function PatientShopsScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <View style={styles.cardHeader}>
+              <TouchableOpacity
+                style={styles.cardHeader}
+                onPress={() => router.push(`/(patient)/shop/${item.id}` as any)}
+                activeOpacity={0.7}
+              >
                 <View style={styles.shopTitleRow}>
                   <Text style={styles.shopIcon}>🏥</Text>
                   <View style={{ flex: 1 }}>
@@ -159,7 +165,7 @@ export default function PatientShopsScreen() {
                 <View style={styles.verifiedBadge}>
                   <Text style={styles.verifiedBadgeText}>VERIFIED</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.divider} />
 

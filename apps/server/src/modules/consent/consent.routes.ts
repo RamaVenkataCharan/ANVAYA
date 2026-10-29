@@ -53,4 +53,14 @@ router.get(
   (req, res, next) => consentController.getPatientsWithConsent(req, res, next)
 );
 
+/**
+ * GET /consent/access-history
+ * View audit trail of external practitioners accessing this patient's records (Tier B)
+ */
+router.get(
+  '/access-history',
+  requireRole(Role.PATIENT),
+  (req, res, next) => consentController.getAccessHistory(req, res, next)
+);
+
 export const consentRoutes = router;
