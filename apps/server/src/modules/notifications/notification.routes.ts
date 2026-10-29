@@ -13,3 +13,4 @@ router.post('/:id/read', authenticateJwt, (req, res, next) =>
 );
 
 export const notificationRoutes = router;
+

@@ -438,7 +438,8 @@ export class UsersService {
   }
 
   /**
-   * Aggregates and exports all user account data for GDPR/DPDP request (Tier B)
+   * Exports machine-readable archive of user account data strictly scoped to owned records
+   * Strips password hashes, tokens, internal secrets.
    */
   async exportUserData(userId: string, role: Role, ipAddress?: string, userAgent?: string) {
     const userProfile = await authService.getMe(userId);
@@ -452,7 +453,7 @@ export class UsersService {
       userAgent,
     });
 
-    let clinicalData: any = {};
+    let records: any = {};
     if (role === Role.PATIENT && userProfile.patientProfile) {
       const patientId = userProfile.patientProfile.id;
       if (isDbConnected()) {
@@ -461,12 +462,59 @@ export class UsersService {
           prisma.appointment.findMany({ where: { patientId } }),
           prisma.report.findMany({ where: { patientId } }),
         ]);
-        clinicalData = { prescriptions, appointments, reports };
+        records = { prescriptions, appointments, reports };
       } else {
-        clinicalData = {
+        records = {
           prescriptions: inMemoryDb.prescriptions.filter((p) => p.patientId === patientId),
           appointments: inMemoryDb.appointments.filter((a) => a.patientId === patientId),
           reports: inMemoryDb.reports.filter((r) => r.patientId === patientId),
+        };
+      }
+    } else if (role === Role.DOCTOR && userProfile.doctorProfile) {
+      const doctorId = userProfile.doctorProfile.id;
+      if (isDbConnected()) {
+        const [prescriptionsAuthored, appointmentsManaged] = await Promise.all([
+          prisma.prescription.findMany({ where: { doctorId }, include: { items: true } }),
+          prisma.appointment.findMany({ where: { doctorId } }),
+        ]);
+        records = { prescriptionsAuthored, appointmentsManaged };
+      } else {
+        records = {
+          prescriptionsAuthored: inMemoryDb.prescriptions
+            .filter((p) => p.doctorId === doctorId)
+            .map((p) => ({
+              id: p.id,
+              diagnosis: p.diagnosis,
+              notes: p.notes,
+              createdAt: p.createdAt,
+              items: p.items,
+            })),
+          appointmentsManaged: inMemoryDb.appointments
+            .filter((a) => a.doctorId === doctorId)
+            .map((a) => ({
+              id: a.id,
+              scheduledAt: a.scheduledAt,
+              status: a.status,
+              notes: a.notes,
+              createdAt: a.createdAt,
+            })),
+        };
+      }
+    } else if (role === Role.SHOP && userProfile.shopProfile) {
+      const shopId = userProfile.shopProfile.id;
+      if (isDbConnected()) {
+        const billsIssued = await prisma.bill.findMany({ where: { shopId } });
+        records = { billsIssued };
+      } else {
+        records = {
+          billsIssued: inMemoryDb.bills
+            .filter((b) => b.shopId === shopId)
+            .map((b) => ({
+              id: b.id,
+              totalAmount: b.totalAmount,
+              paymentMode: b.paymentMode,
+              createdAt: b.createdAt,
+            })),
         };
       }
     }
@@ -474,7 +522,7 @@ export class UsersService {
     return {
       exportedAt: new Date().toISOString(),
       user: userProfile,
-      data: clinicalData,
+      records,
     };
   }
 

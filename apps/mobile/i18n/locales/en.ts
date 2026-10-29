@@ -121,8 +121,8 @@ export const en = {
     privacyText: 'ANVAYA processes contact details, appointment schedules, and encrypted clinical records strictly for healthcare delivery. Patient data is never sold or shared with unconsented third parties.',
   },
   accountActions: {
-    exportTitle: 'Export Personal Data',
-    exportDesc: 'Request an archive of your account profile, consultations, prescriptions, and financial transactions.',
+    exportTitle: 'Download a copy of my data',
+    exportDesc: 'Download a machine-readable archive of your personal account data and created records.',
     exportBtn: 'Generate Data Export',
     exportSuccess: 'Data export package generated successfully.',
     deleteTitle: 'Delete Account',
@@ -149,3 +149,4 @@ export const en = {
     backHome: 'Return to Home',
   },
 };
+

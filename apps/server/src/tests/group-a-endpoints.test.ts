@@ -388,7 +388,8 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
   });
 
   describe('A8: Data Export and Account Deletion', () => {
-    it('exports user data package', async () => {
+    it('exports user data package strictly scoped to own records without sensitive secrets', async () => {
+      // 1. Patient export
       const res = await request(app)
         .post(`${API}/users/export-data`)
         .set('Authorization', `Bearer ${patToken}`)
@@ -397,6 +398,18 @@ describe('Group A: Account and System Endpoints (Tier B Suite)', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data.user.id).toBe(patUserId);
+      expect(res.body.data.user.passwordHash).toBeUndefined();
+      expect(res.body.data.user.tokens).toBeUndefined();
+      expect(res.body.data.records).toBeDefined();
+
+      // 2. Doctor export is scoped to authored records only
+      const docRes = await request(app)
+        .post(`${API}/users/export-data`)
+        .set('Authorization', `Bearer ${docToken}`)
+        .send({});
+      expect(docRes.status).toBe(200);
+      expect(docRes.body.data.user.id).toBe(docUserId);
+      expect(docRes.body.data.records.prescriptionsAuthored).toBeDefined();
     });
 
     it('deactivates account on valid password confirmation', async () => {

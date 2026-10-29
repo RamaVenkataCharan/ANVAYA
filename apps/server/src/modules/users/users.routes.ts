@@ -104,9 +104,31 @@ router.patch(
   (req, res, next) => usersController.updateProfile(req, res, next)
 );
 
+const dataExportLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 3,
+  keyGenerator: (req) => (req as any).user?.userId || req.ip || 'anonymous',
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'TooManyRequests',
+    message: 'Rate limit reached: A data export can only be requested up to 3 times per day.',
+    timestamp: new Date().toISOString(),
+  },
+});
+
 router.post(
   '/users/export-data',
   authenticateJwt,
+  dataExportLimiter,
+  (req, res, next) => usersController.exportUserData(req, res, next)
+);
+
+router.post(
+  '/export-data',
+  authenticateJwt,
+  dataExportLimiter,
   (req, res, next) => usersController.exportUserData(req, res, next)
 );
 

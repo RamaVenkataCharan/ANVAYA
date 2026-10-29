@@ -48,3 +48,4 @@ export const setLanguage = async (lang: 'en' | 'te') => {
 };
 
 export default i18n;
+
