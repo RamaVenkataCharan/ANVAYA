@@ -38,6 +38,7 @@ export default function PatientProfileScreen() {
         <View style={styles.card}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>👤</Text>
+            <View style={styles.onlineBadgeDot} />
           </View>
           <Text style={styles.userName}>{user?.name}</Text>
           <Text style={styles.roleLabel}>Verified Patient</Text>
@@ -154,6 +155,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    position: 'relative',
+  },
+  onlineBadgeDot: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.status.success,
+    borderWidth: 3,
+    borderColor: Colors.surface,
   },
   avatarText: {
     fontSize: 34,

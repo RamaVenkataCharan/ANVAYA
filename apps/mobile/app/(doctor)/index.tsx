@@ -176,6 +176,7 @@ export default function DoctorDashboard() {
         <View style={styles.profileSection}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarEmoji}>👨‍⚕️</Text>
+            <View style={styles.onlineBadgeDot} />
           </View>
           <View>
             <Text style={styles.greetingText}>{t('doctorHome.greeting')}</Text>
@@ -343,7 +344,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  onlineBadgeDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.status.success,
+    borderWidth: 2,
+    borderColor: '#FAFBFB',
+  },
   avatarCircle: {
+    position: 'relative',
     width: 44,
     height: 44,
     borderRadius: 22,
