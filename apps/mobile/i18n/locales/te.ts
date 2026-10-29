@@ -376,4 +376,60 @@ export const te = {
     apply: 'ప్రిస్క్రిప్షన్‌కు వర్తింపజేయండి', // machine-drafted, needs native review
     itemsCount: 'మందులు', // machine-drafted, needs native review
   },
+  shopHome: {
+    greeting: 'శుభోదయం,', // machine-drafted, needs native review
+    pharmacy: 'ఫార్మసీ', // machine-drafted, needs native review
+    today: 'ఈ రోజు', // machine-drafted, needs native review
+    prescriptionsCount: 'ప్రిస్క్రిప్షన్లు', // machine-drafted, needs native review
+    billingTotal: 'బిల్లింగ్', // machine-drafted, needs native review
+    toDispenseTab: 'డిస్పెన్స్ చేయాల్సినవి', // machine-drafted, needs native review
+    dispensedTab: 'డిస్పెన్స్ చేసినవి', // machine-drafted, needs native review
+    outstandingCredit: 'బాకీ మొత్తం', // machine-drafted, needs native review
+    noPrescriptions: 'ఈ క్యూలో ప్రిస్క్రిప్షన్లు లేవు.', // machine-drafted, needs native review
+    itemsCount: 'మందులు', // machine-drafted, needs native review
+    statusPending: 'పెండింగ్', // machine-drafted, needs native review
+    statusDispensed: 'డిస్పెన్స్ చేయబడింది', // machine-drafted, needs native review
+    scanQr: 'డిస్పెన్స్ చేయడానికి QR స్కాన్ చేయండి', // machine-drafted, needs native review
+  },
+  shopDispense: {
+    title: 'మందులను డిస్పెన్స్ చేయండి', // machine-drafted, needs native review
+    verifyPrescription: 'ప్రిస్క్రిప్షన్‌ను ధృవీకరించండి', // machine-drafted, needs native review
+    scanPrompt: 'పేషెంట్ QR కోడ్‌ను స్కాన్ చేయండి లేదా కోడ్ నమోదు చేయండి', // machine-drafted, needs native review
+    manualInput: 'ప్రిస్క్రిప్షన్ కోడ్ నమోదు చేయండి', // machine-drafted, needs native review
+    verifyBtn: 'కోడ్‌ను ధృవీకరించండి', // machine-drafted, needs native review
+    patientDetails: 'పేషెంట్ వివరాలు', // machine-drafted, needs native review
+    prescribedMeds: 'సూచించిన మందులు', // machine-drafted, needs native review
+    batchNo: 'బ్యాచ్ సంఖ్య', // machine-drafted, needs native review
+    expiryDate: 'గడువు తేదీ (MM/YY)', // machine-drafted, needs native review
+    dispenseBtn: 'డిస్పెన్స్ చేసి లాక్ చేయండి', // machine-drafted, needs native review
+    dispenseSuccess: 'ప్రిస్క్రిప్షన్ విజయవంతంగా డిస్పెన్స్ చేయబడింది.', // machine-drafted, needs native review
+  },
+  shopBilling: {
+    title: 'ఫార్మసీ బిల్లింగ్', // machine-drafted, needs native review
+    customerInfo: 'కస్టమర్ సమాచారం', // machine-drafted, needs native review
+    phoneLookup: 'కస్టమర్ ఫోన్', // machine-drafted, needs native review
+    name: 'కస్టమర్ పేరు', // machine-drafted, needs native review
+    itemsList: 'బిల్ ఐటెమ్‌లు', // machine-drafted, needs native review
+    addItem: 'మందును జోడించండి', // machine-drafted, needs native review
+    medicineName: 'మందు పేరు', // machine-drafted, needs native review
+    quantity: 'పరిమాణం', // machine-drafted, needs native review
+    unitPrice: 'యూనిట్ ధర (₹)', // machine-drafted, needs native review
+    subtotal: 'ఉపమొత్తం', // machine-drafted, needs native review
+    gst: 'పన్నులు & జీఎస్టీ (18%)', // machine-drafted, needs native review
+    total: 'చెల్లించాల్సిన మొత్తం', // machine-drafted, needs native review
+    paymentMethod: 'చెల్లింపు విధానం', // machine-drafted, needs native review
+    generateInvoice: 'ఇన్‌వాయిస్‌ను రూపొందించండి & సేవ్ చేయండి', // machine-drafted, needs native review
+    billSuccess: 'బిల్లు విజయవంతంగా సృష్టించబడింది.', // machine-drafted, needs native review
+  },
+  shopKhata: {
+    title: 'కస్టమర్ ఖాతా లెడ్జర్', // machine-drafted, needs native review
+    subtitle: 'స్టోర్ క్రెడిట్ ఖాతాలు & బాకీలు', // machine-drafted, needs native review
+    totalOutstanding: 'మొత్తం బాకీ క్రెడిట్', // machine-drafted, needs native review
+    recordPayment: 'చెల్లింపును నమోదు చేయండి', // machine-drafted, needs native review
+    addCredit: 'క్రెడిట్‌ను జోడించండి', // machine-drafted, needs native review
+    amount: 'మొత్తం (₹)', // machine-drafted, needs native review
+    notes: 'రిమార్కులు / బిల్లు సూచన', // machine-drafted, needs native review
+    noEntries: 'ఖాతా లావాదేవీలు లేవు.', // machine-drafted, needs native review
+    paymentRecorded: 'ఖాతా చెల్లింపు నమోదయింది.', // machine-drafted, needs native review
+  },
 };

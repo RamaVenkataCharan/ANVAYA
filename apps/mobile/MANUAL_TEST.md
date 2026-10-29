@@ -145,6 +145,34 @@ Because mobile devices cannot reach `localhost`, your development machine and ph
    - Tap "Cancel / Void Prescription" -> Enter clinical reason -> Confirm voiding.
    - Verify prescription status updates to CANCELLED and is permanently locked.
 
+#### Step 0.9: Group D Pharmacy Flows (Dashboard, Dispense, Billing, Khata, Invoices)
+1. **Pharmacy Home Dashboard (D1)**:
+   - Log in as verified Medical Shop account.
+   - Verify Pharmacy greeting header with green store avatar and notification bell.
+   - Verify 2 Summary Cards: Today's Prescriptions (mint background with pill icon) and Today's Billing total (peach background with ₹ rupee icon).
+   - Test Segmented Tab Switcher: toggle between "To dispense" and "Dispensed".
+   - Verify queue items display document icon, patient name, time, items count, and `Pending` / `Dispensed` status badge.
+   - Verify bottom "Outstanding" credit ticker displaying amount (e.g. `₹ 3,280`) with navigation link to Khata.
+2. **QR Dispense & Medicine Verification (D2)**:
+   - Navigate to Dispense tab -> Test camera permissions dialog.
+   - Scan patient QR code or manually enter prescription code.
+   - Review verified patient details and prescribed medicine line items.
+   - Input batch numbers and expiry dates per medicine -> Tap "Fulfill & Dispense".
+   - Confirm status locks to DISPENSED and transitions to dispensed queue.
+3. **Interactive Billing & Khata Credit (D3)**:
+   - Navigate to Billing tab -> Look up customer by phone number.
+   - Add medicine line items: verify quantity, unit price, and subtotal calculation.
+   - Select Payment Mode: CASH, UPI, CARD, or KHATA (Store Credit).
+   - Tap "Generate & Save Invoice" -> Verify bill creation and balance adjustment.
+4. **Customer Khata Ledger (D4)**:
+   - Navigate to Customers / Khata tab -> View store credit balances.
+   - Tap a customer to view transaction history (Credit vs Payment entries).
+   - Tap "Record Payment" -> Enter settlement amount -> Verify balance decreases immediately.
+5. **Invoice Archive & Native Sharing (D6)**:
+   - Open Invoices from More tab -> View past issued bills.
+   - Tap an invoice to view receipt breakdown.
+   - Tap "Share / Print Receipt" -> Verify native iOS / Android print spooler and sharesheet invocation.
+
 
 ---
 

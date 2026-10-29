@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { useQueryClient } from '@tanstack/react-query';
 import { PrescriptionModel, PrescriptionStatus } from '@anvaya/shared';
@@ -82,6 +82,16 @@ export default function ScanPrescriptionScreen() {
       setIsVerifying(false);
     }
   };
+
+  const params = useLocalSearchParams<{ code?: string }>();
+
+  React.useEffect(() => {
+    if (params.code) {
+      setActiveTab('manual');
+      setManualCode(params.code);
+      verifyCodeOrToken(params.code);
+    }
+  }, [params.code]);
 
   const handleBarcodeScanned = (barcodeResult: BarcodeScanningResult) => {
     if (scanned || isVerifying || isDispensing) return;

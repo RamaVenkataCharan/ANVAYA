@@ -165,20 +165,18 @@ Status Legend:
 
 ---
 
-### Group D: Medical Shop / Pharmacy Screens
+### Group D: Medical Shop / Pharmacy Screens — COMPLETED
 
 | ID | Screen Title | Role | Route File Path | Endpoints Used | Status | Notes & Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | Pharmacy Home Dashboard | Shop | `app/(shop)/index.tsx` | `GET /billing/my-bills`, `GET /prescriptions` | **PARTIAL** | Rx count, billing volume, "To dispense" / "Dispensed" segmented toggle |
-| **D2a** | QR Dispense & Verify | Shop | `app/(shop)/scan-prescription.tsx` | `POST /prescriptions/verify`, `POST /prescriptions/:id/dispense` | **EXISTS** | Camera QR barcode scanner, manual OTP code fallback |
-| **D2b** | Dispense History & Detail | Shop | `app/(shop)/dispense/[id].tsx` | `GET /prescriptions/:id` | **MISSING** | Dispensed item verification audit, patient verification badge |
-| **D3a** | Issue Bill | Shop | `app/(shop)/billing.tsx` | `POST /billing/create` | **EXISTS** | Customer selection, medicine itemization, payment mode |
-| **D3b** | Bill Detail & Void/Return | Shop | `app/(shop)/bill/[id].tsx` | `GET /billing/bills/:id`, `POST /billing/bills/:id/void` (Tier B) | **MISSING** | Itemized invoice, reverse transaction, ledger adjustment |
-| **D4a** | Customers & Khata Dues | Shop | `app/(shop)/ledger.tsx` | `GET /billing/ledger/balance/:patientId` | **PARTIAL** | Patient list with credit balances, search by phone/name |
-| **D4b** | Customer Detail & Khata Ledger | Shop | `app/(shop)/customer/[id].tsx` | `GET /billing/ledger/balance/:patientId`, `POST /billing/ledger/payment` | **MISSING** | Transaction ledger history, record partial payment, send reminder |
-| **D5** | Sales & Performance Report | Shop | `app/(shop)/sales-report.tsx` | `GET /billing/my-bills` | **MISSING** | Daily/weekly/monthly volume totals, simple bar chart, PDF share |
-| **D6** | Edit Shop Profile | Shop | `app/(shop)/edit-profile.tsx` | `PATCH /users/profile` | **MISSING** | Store name, timings, drug license, optional GSTIN |
+| **D1** | Pharmacy Home Dashboard | Shop | `app/(shop)/index.tsx` | `GET /prescriptions`, `GET /billing/bills`, `GET /billing/ledger` | **EXISTS** | Redesigned matching mockup: Prescriptions count, billing total, To dispense / Dispensed segmented toggle, outstanding credit ticker |
+| **D2** | QR Dispense & Verify | Shop | `app/(shop)/scan-prescription.tsx` | `POST /prescriptions/verify`, `POST /prescriptions/dispense` | **EXISTS** | Camera QR barcode scanner, manual code fallback, item batch/expiry entry, fulfill & lock |
+| **D3** | Issue Bill & Invoicing | Shop | `app/(shop)/billing.tsx` | `POST /billing/bills` | **EXISTS** | Customer lookup, medicine autocomplete, quantity/unit price, GST, cash/UPI/Khata payment |
+| **D4** | Customers & Khata Ledger | Shop | `app/(shop)/ledger.tsx` | `GET /billing/ledger`, `POST /billing/ledger` | **EXISTS** | Customer credit balances, transaction ledger history, record settlement payment modal |
+| **D5** | Refill Reminders Queue | Shop | `app/(shop)/refill-reminders.tsx` | `GET /refills`, `DELETE /refills/:id` | **EXISTS** | Track upcoming prescription refills, notify customer CTA |
+| **D6** | Invoice Archive & Share | Shop | `app/(shop)/invoices.tsx` | `GET /billing/bills` | **EXISTS** | Itemized invoice breakdown, PDF generation & native sharesheet / print via `expo-print` & `expo-sharing` |
 | **D7** | Shop More Tab | Shop | `app/(shop)/more.tsx` | None (Navigation hub) | **EXISTS** | Unified entry to Profile, Settings, Notifications, Legal, Logout |
+| **D8** | Edit Shop Profile | Shop | `app/(shop)/edit-profile.tsx` | `PATCH /users/profile` | **EXISTS** | Store name, timings, address profile editor |
 
 ---
 
