@@ -48,7 +48,7 @@ export default function SettingsScreen() {
               await logout();
               router.replace('/(auth)/login');
             } catch (err) {
-              Alert.alert('Notice', 'Logged out locally. Server sessions terminated.');
+              Alert.alert(t('common.notice'), 'Logged out locally. Server sessions terminated.');
               await logout();
               router.replace('/(auth)/login');
             } finally {

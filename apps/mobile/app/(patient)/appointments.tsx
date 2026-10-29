@@ -18,6 +18,7 @@ import { AppointmentStatus } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { StatusBadge } from '../../components/ui';
+import { useTranslation } from 'react-i18next';
 
 interface DoctorItem {
   id: string;
@@ -51,6 +52,7 @@ interface AppointmentItem {
 }
 
 export default function PatientAppointmentsScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
   const [isBookModalVisible, setIsBookModalVisible] = useState(false);
@@ -111,7 +113,7 @@ export default function PatientAppointmentsScreen() {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       setIsBookModalVisible(false);
       resetForm();
-      Alert.alert('Appointment Booked', 'Your appointment has been scheduled successfully.');
+      Alert.alert(t('common.success'), 'Your appointment has been scheduled successfully.');
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
@@ -134,7 +136,7 @@ export default function PatientAppointmentsScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      Alert.alert('Cancelled', 'Your appointment has been cancelled.');
+      Alert.alert(t('common.cancelled'), 'Your appointment has been cancelled.');
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
@@ -142,7 +144,7 @@ export default function PatientAppointmentsScreen() {
         axiosErr.response?.data?.message ||
         axiosErr.response?.data?.error ||
         'Unable to cancel this appointment.';
-      Alert.alert('Cancellation Failed', msg);
+      Alert.alert(t('common.error'), msg);
     },
     onSettled: () => {
       setCancellingId(null);

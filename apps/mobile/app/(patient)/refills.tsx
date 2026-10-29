@@ -41,10 +41,10 @@ export default function PatientRefillsScreen() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['patient', 'refills'] });
-      Alert.alert('Reminder Dismissed', 'The refill reminder has been removed.');
+      Alert.alert(t('common.notice'), 'The refill reminder has been removed.');
     },
     onError: (err: any) => {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to dismiss reminder.');
+      Alert.alert(t('common.error'), err.response?.data?.message || t('common.errorMessage'));
     },
   });
 

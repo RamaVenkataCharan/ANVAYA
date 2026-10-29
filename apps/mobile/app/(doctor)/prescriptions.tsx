@@ -14,8 +14,10 @@ import { PrescriptionModel, PrescriptionStatus } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { StatusBadge, Button } from '../../components/ui';
+import { useTranslation } from 'react-i18next';
 
 export default function DoctorPrescriptionsScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
@@ -43,15 +45,15 @@ export default function DoctorPrescriptionsScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
-      Alert.alert('Success', 'Prescription has been cancelled.');
+      Alert.alert(t('common.success'), t('doctorPrescription.cancelSuccess'));
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
         axiosErr.response?.data?.message ||
         axiosErr.response?.data?.error ||
-        'Unable to cancel this prescription.';
-      Alert.alert('Cancellation Failed', msg);
+        t('common.errorMessage');
+      Alert.alert(t('common.error'), msg);
     },
     onSettled: () => {
       setCancellingId(null);

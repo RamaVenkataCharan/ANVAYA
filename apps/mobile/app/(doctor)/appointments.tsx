@@ -15,6 +15,7 @@ import { AppointmentStatus } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { StatusBadge } from '../../components/ui';
+import { useTranslation } from 'react-i18next';
 
 interface AppointmentItem {
   id: string;
@@ -35,6 +36,7 @@ interface AppointmentItem {
 }
 
 export default function DoctorAppointmentsScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<'ALL' | AppointmentStatus>('ALL');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -61,17 +63,17 @@ export default function DoctorAppointmentsScreen() {
       const res = await api.patch(`/appointments/${id}/status`, { status });
       return res.data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      Alert.alert('Status Updated', `Appointment marked as ${variables.status}.`);
+      Alert.alert(t('common.success'), t('doctorAppointment.statusUpdated'));
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; error?: string } } };
       const msg =
         axiosErr.response?.data?.message ||
         axiosErr.response?.data?.error ||
-        'Failed to update appointment status.';
-      Alert.alert('Update Failed', msg);
+        t('common.errorMessage');
+      Alert.alert(t('common.error'), msg);
     },
     onSettled: () => {
       setUpdatingId(null);

@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
 
 interface ShopItem {
   id: string;
@@ -31,6 +32,7 @@ interface ShopItem {
 }
 
 export default function PatientShopsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -53,7 +55,7 @@ export default function PatientShopsScreen() {
 
   const handleCall = async (phone: string) => {
     if (!phone) {
-      Alert.alert('Phone Unavailable', 'No phone number is registered for this pharmacy.');
+      Alert.alert(t('common.notice'), 'No phone number is registered for this pharmacy.');
       return;
     }
     const cleanPhone = phone.replace(/[^0-9+]/g, '');
@@ -63,10 +65,10 @@ export default function PatientShopsScreen() {
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Call Failed', `Cannot place calls to ${phone} from this device.`);
+        Alert.alert(t('common.error'), `Cannot place calls to ${phone} from this device.`);
       }
     } catch {
-      Alert.alert('Call Failed', `Could not initiate call to ${phone}.`);
+      Alert.alert(t('common.error'), `Could not initiate call to ${phone}.`);
     }
   };
 
@@ -76,7 +78,7 @@ export default function PatientShopsScreen() {
     try {
       await Linking.openURL(mapsUrl);
     } catch {
-      Alert.alert('Maps Error', 'Could not open maps application.');
+      Alert.alert(t('common.error'), 'Could not open maps application.');
     }
   };
 

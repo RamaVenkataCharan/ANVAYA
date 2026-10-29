@@ -48,11 +48,11 @@ export default function RecordDetailScreen() {
 
   const handleOpenDocument = () => {
     if (!report?.fileUrl) {
-      Alert.alert('Preview Document', 'Secure in-memory medical document preview is loaded.');
+      Alert.alert(t('common.notice'), 'Secure in-memory medical document preview is loaded.');
       return;
     }
     Linking.openURL(report.fileUrl).catch(() => {
-      Alert.alert('Document Viewer', 'Unable to open file link directly.');
+      Alert.alert(t('common.error'), 'Unable to open file link directly.');
     });
   };
 

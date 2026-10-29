@@ -36,9 +36,9 @@ export default function AccountActionsScreen() {
     try {
       const res = await api.post('/users/export-data', {});
       setExportResult(JSON.stringify(res.data.data, null, 2));
-      Alert.alert('Data Export Ready', t('accountActions.exportSuccess'));
+      Alert.alert(t('common.notice'), t('accountActions.exportSuccess'));
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.message || 'Failed to generate data export.');
+      Alert.alert(t('common.error'), err.response?.data?.message || t('common.errorMessage'));
     } finally {
       setIsExporting(false);
     }
@@ -63,9 +63,9 @@ export default function AccountActionsScreen() {
             setDeleteError(null);
             try {
               await api.post('/users/delete-account', { password, reason });
-              Alert.alert('Account Deactivated', 'Your account has been deactivated.', [
+              Alert.alert(t('common.notice'), 'Your account has been deactivated.', [
                 {
-                  text: 'OK',
+                  text: t('common.ok'),
                   onPress: async () => {
                     await logout();
                     router.replace('/(auth)/login');

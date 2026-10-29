@@ -122,6 +122,7 @@ export default function PatientDashboard() {
               <Text style={styles.avatarText}>
                 {user?.name ? user.name.charAt(0).toUpperCase() : 'P'}
               </Text>
+              <View style={styles.onlineBadgeDot} />
             </View>
             <View>
               <Text style={styles.greetingText}>{t('patientHome.greeting')}</Text>
@@ -353,6 +354,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#d8eee8',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  onlineBadgeDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: Colors.status.success,
+    borderWidth: 2,
+    borderColor: '#FAFBFB',
   },
   avatarText: {
     fontSize: 20,

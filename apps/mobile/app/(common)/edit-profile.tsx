@@ -84,8 +84,8 @@ export default function EditProfileScreen() {
 
       await api.patch('/users/profile', payload);
       await refreshMe();
-      Alert.alert('Success', t('profile.updateSuccess'), [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert(t('common.success'), t('profile.updateSuccess'), [
+        { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (err: any) {
       setErrorMessage(

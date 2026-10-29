@@ -68,7 +68,7 @@ export default function BillDetailScreen() {
         title: `Receipt ${bill.billNumber}`,
       });
     } catch {
-      Alert.alert('Share Failed', 'Unable to open system share sheet.');
+      Alert.alert(t('common.error'), 'Unable to open system share sheet.');
     }
   };
 

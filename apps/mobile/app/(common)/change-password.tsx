@@ -46,8 +46,8 @@ export default function ChangePasswordScreen() {
         currentPassword,
         newPassword,
       });
-      Alert.alert('Success', t('profile.passwordSuccess'), [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert(t('common.success'), t('profile.passwordSuccess'), [
+        { text: t('common.ok'), onPress: () => router.back() },
       ]);
     } catch (err: any) {
       setErrorMessage(

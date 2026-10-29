@@ -8,18 +8,20 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/auth';
 import { Colors } from '../../constants/colors';
 
 export default function ShopProfileScreen() {
+  const { t } = useTranslation();
   const { user, logout } = useAuthStore();
   const shop = user?.shopProfile;
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to log out of ANVAYA?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('common.signOut'), 'Are you sure you want to log out of ANVAYA?', [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Sign Out',
+        text: t('common.signOut'),
         style: 'destructive',
         onPress: () => logout(),
       },

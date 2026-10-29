@@ -29,6 +29,14 @@ export const te = {
     errorTitle: 'ఏదో తప్పు జరిగింది',
     errorMessage: 'మీ అభ్యర్థనను పూర్తి చేయలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.',
     offlineNotice: 'ఇంటర్నెట్ కనెక్షన్ లేదు. ఆఫ్‌లైన్ మోడ్‌లో పనిచేస్తోంది.',
+    success: 'విజయం', // machine-drafted, needs native review
+    error: 'లోపం', // machine-drafted, needs native review
+    ok: 'సరే', // machine-drafted, needs native review
+    notice: 'గమనిక', // machine-drafted, needs native review
+    submitted: 'సమర్పించబడింది', // machine-drafted, needs native review
+    deleted: 'తొలగించబడింది', // machine-drafted, needs native review
+    cancelled: 'రద్దు చేయబడింది', // machine-drafted, needs native review
+    required: 'తప్పనిసరి', // machine-drafted, needs native review
   },
   auth: {
     appName: 'అన్వయ (ANVAYA)',
@@ -335,6 +343,7 @@ export const te = {
     writePrescription: 'ప్రిస్క్రిప్షన్ రాయండి', // machine-drafted, needs native review
     viewClinicalHistory: 'పేషెంట్ చరిత్రను చూడండి', // machine-drafted, needs native review
     statusUpdated: 'అపాయింట్‌మెంట్ స్థితి విజయవంతంగా అప్‌డేట్ చేయబడింది.', // machine-drafted, needs native review
+    notes: 'క్లినికల్ నోట్స్', // machine-drafted, needs native review
   },
   doctorPatient: {
     title: 'పేషెంట్ క్లినికల్ సారాంశం', // machine-drafted, needs native review

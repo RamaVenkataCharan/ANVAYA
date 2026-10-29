@@ -67,8 +67,8 @@ export default function RejectedVerificationScreen() {
 
       await api.post('/auth/resubmit-verification', payload);
       await refreshMe();
-      Alert.alert('Submitted', t('auth.resubmitSuccess'), [
-        { text: 'OK', onPress: () => router.replace('/(auth)/pending-verification') },
+      Alert.alert(t('common.submitted'), t('auth.resubmitSuccess'), [
+        { text: t('common.ok'), onPress: () => router.replace('/(auth)/pending-verification') },
       ]);
     } catch (err: any) {
       setErrorMessage(

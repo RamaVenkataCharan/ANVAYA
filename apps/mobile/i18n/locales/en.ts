@@ -22,6 +22,14 @@ export const en = {
     errorTitle: 'Something went wrong',
     errorMessage: 'Unable to complete your request. Please try again.',
     offlineNotice: 'No internet connection. Working in offline mode.',
+    success: 'Success',
+    error: 'Error',
+    ok: 'OK',
+    notice: 'Notice',
+    submitted: 'Submitted',
+    deleted: 'Deleted',
+    cancelled: 'Cancelled',
+    required: 'Required',
   },
   auth: {
     appName: 'ANVAYA',
@@ -328,6 +336,7 @@ export const en = {
     writePrescription: 'Write Prescription',
     viewClinicalHistory: 'View Patient History',
     statusUpdated: 'Appointment status updated successfully.',
+    notes: 'Clinical Notes',
   },
   doctorPatient: {
     title: 'Patient Clinical Summary',

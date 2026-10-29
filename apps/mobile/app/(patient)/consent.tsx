@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
 
 interface DoctorData {
   id: string;
@@ -40,6 +41,7 @@ interface ConsentItem {
 }
 
 export default function PatientConsentScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'active' | 'history' | 'audit'>('active');
 
@@ -138,7 +140,7 @@ export default function PatientConsentScreen() {
         axiosErr.response?.data?.message ||
         axiosErr.response?.data?.error ||
         'Failed to revoke consent.';
-      Alert.alert('Error', msg);
+      Alert.alert(t('common.error'), msg);
     },
     onSettled: () => {
       setRevokingDoctorId(null);

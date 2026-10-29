@@ -21,6 +21,7 @@ import {
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { MedicineAutocomplete } from '../../components/MedicineAutocomplete';
+import { useTranslation } from 'react-i18next';
 
 interface PatientLookupResult {
   id: string;
@@ -36,6 +37,7 @@ interface BillLineItem {
 }
 
 export default function ShopBillingScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const params = useLocalSearchParams<{
@@ -157,7 +159,7 @@ export default function ShopBillingScreen() {
 
   const handleRemoveItem = (id: string) => {
     if (items.length <= 1) {
-      Alert.alert('Required', 'A bill must have at least one line item.');
+      Alert.alert(t('common.required'), 'A bill must have at least one line item.');
       return;
     }
     setItems((prev) => prev.filter((i) => i.id !== id));

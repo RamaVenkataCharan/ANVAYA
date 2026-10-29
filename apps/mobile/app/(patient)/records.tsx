@@ -21,6 +21,7 @@ import { ReportType } from '@anvaya/shared';
 import { api } from '../../services/api';
 import { Colors } from '../../constants/colors';
 import { ReportViewModal } from '../../components/ReportViewModal';
+import { useTranslation } from 'react-i18next';
 
 interface ReportItem {
   id: string;
@@ -61,6 +62,7 @@ interface BillItem {
 }
 
 export default function PatientRecordsScreen() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeMainTab, setActiveMainTab] = useState<'reports' | 'bills'>('reports');
   const [selectedReportType, setSelectedReportType] = useState<'ALL' | ReportType>('ALL');
@@ -149,7 +151,7 @@ export default function PatientRecordsScreen() {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       setIsUploadModalVisible(false);
       resetUploadForm();
-      Alert.alert('Report Saved', 'Health report has been uploaded to your vault.');
+      Alert.alert(t('common.success'), 'Health report has been uploaded to your vault.');
     },
     onError: async (err: unknown) => {
       // Fallback: If upload multipart failed, try JSON upload with fileUrl
@@ -163,7 +165,7 @@ export default function PatientRecordsScreen() {
         queryClient.invalidateQueries({ queryKey: ['reports'] });
         setIsUploadModalVisible(false);
         resetUploadForm();
-        Alert.alert('Report Saved', 'Health report has been registered in your vault.');
+        Alert.alert(t('common.success'), 'Health report has been registered in your vault.');
       } catch (_fallbackErr: unknown) {
         const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
         const msg =
@@ -184,12 +186,12 @@ export default function PatientRecordsScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      Alert.alert('Deleted', 'Report was removed from your vault.');
+      Alert.alert(t('common.deleted'), 'Report was removed from your vault.');
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       const msg = axiosErr.response?.data?.message || 'Could not delete report.';
-      Alert.alert('Error', msg);
+      Alert.alert(t('common.error'), msg);
     },
     onSettled: () => {
       setDeletingId(null);
@@ -224,7 +226,7 @@ export default function PatientRecordsScreen() {
         }
       }
     } catch {
-      Alert.alert('Picker Error', 'Unable to pick document from storage.');
+      Alert.alert(t('common.error'), 'Unable to pick document from storage.');
     }
   };
 
@@ -232,7 +234,7 @@ export default function PatientRecordsScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Required', 'Media library access is needed to pick medical photos.');
+        Alert.alert(t('common.notice'), 'Media library access is needed to pick medical photos.');
         return;
       }
 
@@ -256,7 +258,7 @@ export default function PatientRecordsScreen() {
         }
       }
     } catch {
-      Alert.alert('Picker Error', 'Unable to open image gallery.');
+      Alert.alert(t('common.error'), 'Unable to open image gallery.');
     }
   };
 

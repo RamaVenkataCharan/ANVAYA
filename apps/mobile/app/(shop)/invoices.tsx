@@ -21,6 +21,7 @@ import { Colors } from '../../constants/colors';
 import { StatusBadge } from '../../components/ui';
 import { useAuthStore } from '../../store/auth';
 import { escapeHtml } from '@anvaya/shared';
+import { useTranslation } from 'react-i18next';
 
 interface ShopInvoiceMedicineItem {
   id?: string;
@@ -53,6 +54,7 @@ interface ShopInvoiceItem {
 }
 
 export default function ShopInvoicesScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuthStore();
   const shop = user?.shopProfile;
@@ -291,11 +293,11 @@ export default function ShopInvoicesScreen() {
           dialogTitle: `Share Invoice ${invoice.billNumber}`,
         });
       } else {
-        Alert.alert('Notice', 'PDF sharing is not available on this platform.');
+        Alert.alert(t('common.notice'), 'PDF sharing is not available on this platform.');
       }
     } catch (err: unknown) {
       const errorObj = err as Error;
-      Alert.alert('Sharing Failed', errorObj.message || 'Could not generate invoice PDF.');
+      Alert.alert(t('common.error'), errorObj.message || 'Could not generate invoice PDF.');
     } finally {
       setIsSharingPdf(false);
     }
