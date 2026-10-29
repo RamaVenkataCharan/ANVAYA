@@ -1,7 +1,10 @@
 import { VerificationStatus, Role } from '@anvaya/shared';
 import { prisma, isDbConnected } from '../../config/prisma';
 import { inMemoryDb } from '../../db/inMemoryDb';
-import { NotFoundError } from '../../utils/errors';
+import { NotFoundError, UnauthorizedError } from '../../utils/errors';
+import { authService } from '../auth/auth.service';
+import { comparePassword } from '../../utils/password';
+import { recordAuditLog } from '../../middleware/audit';
 
 export class UsersService {
   /**
@@ -335,6 +338,203 @@ export class UsersService {
       user.updatedAt = new Date();
       return { id: user.id, name: user.name, pushToken: user.pushToken };
     }
+  }
+
+  /**
+   * Updates user profile and role details (Tier B)
+   */
+  async updateProfile(
+    userId: string,
+    role: Role,
+    updates: any,
+    ipAddress?: string,
+    userAgent?: string
+  ) {
+    if (isDbConnected()) {
+      if (updates.name || updates.phone) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            ...(updates.name && { name: updates.name }),
+            ...(updates.phone && { phone: updates.phone }),
+          },
+        });
+      }
+
+      if (role === Role.PATIENT) {
+        await prisma.patient.update({
+          where: { userId },
+          data: {
+            ...(updates.address && { address: updates.address }),
+            ...(updates.dob && { dob: new Date(updates.dob) }),
+            ...(updates.gender && { gender: updates.gender }),
+            ...(updates.bloodGroup && { bloodGroup: updates.bloodGroup }),
+            ...(updates.emergencyContact && { emergencyContact: updates.emergencyContact }),
+          },
+        });
+      } else if (role === Role.DOCTOR) {
+        await prisma.doctor.update({
+          where: { userId },
+          data: {
+            ...(updates.specialization && { specialization: updates.specialization }),
+            ...(updates.clinicAddress && { clinicAddress: updates.clinicAddress }),
+          },
+        });
+      } else if (role === Role.SHOP) {
+        await prisma.shop.update({
+          where: { userId },
+          data: {
+            ...(updates.shopName && { shopName: updates.shopName }),
+            ...(updates.address && { address: updates.address }),
+            ...(updates.timings && { timings: updates.timings }),
+          },
+        });
+      }
+    } else {
+      const user = inMemoryDb.users.find((u) => u.id === userId);
+      if (!user) throw new NotFoundError('User not found');
+      if (updates.name) user.name = updates.name;
+      if (updates.phone) user.phone = updates.phone;
+      user.updatedAt = new Date();
+
+      if (role === Role.PATIENT) {
+        const patient = inMemoryDb.patients.find((p) => p.userId === userId);
+        if (patient) {
+          if (updates.address) patient.address = updates.address;
+          if (updates.dob) patient.dob = new Date(updates.dob);
+          if (updates.gender) patient.gender = updates.gender;
+          if (updates.bloodGroup) patient.bloodGroup = updates.bloodGroup;
+          if (updates.emergencyContact) patient.emergencyContact = updates.emergencyContact;
+          patient.updatedAt = new Date();
+        }
+      } else if (role === Role.DOCTOR) {
+        const doc = inMemoryDb.doctors.find((d) => d.userId === userId);
+        if (doc) {
+          if (updates.specialization) doc.specialization = updates.specialization;
+          if (updates.clinicAddress) doc.clinicAddress = updates.clinicAddress;
+          doc.updatedAt = new Date();
+        }
+      } else if (role === Role.SHOP) {
+        const shop = inMemoryDb.shops.find((s) => s.userId === userId);
+        if (shop) {
+          if (updates.shopName) shop.shopName = updates.shopName;
+          if (updates.address) shop.address = updates.address;
+          if (updates.timings) shop.timings = updates.timings;
+          shop.updatedAt = new Date();
+        }
+      }
+    }
+
+    recordAuditLog({
+      userId,
+      action: 'USER_PROFILE_UPDATED',
+      resource: 'USER',
+      resourceId: userId,
+      ipAddress,
+      userAgent,
+      metadata: updates,
+    });
+
+    return authService.getMe(userId);
+  }
+
+  /**
+   * Aggregates and exports all user account data for GDPR/DPDP request (Tier B)
+   */
+  async exportUserData(userId: string, role: Role, ipAddress?: string, userAgent?: string) {
+    const userProfile = await authService.getMe(userId);
+
+    recordAuditLog({
+      userId,
+      action: 'DATA_EXPORT_REQUESTED',
+      resource: 'USER',
+      resourceId: userId,
+      ipAddress,
+      userAgent,
+    });
+
+    let clinicalData: any = {};
+    if (role === Role.PATIENT && userProfile.patientProfile) {
+      const patientId = userProfile.patientProfile.id;
+      if (isDbConnected()) {
+        const [prescriptions, appointments, reports] = await Promise.all([
+          prisma.prescription.findMany({ where: { patientId }, include: { items: true } }),
+          prisma.appointment.findMany({ where: { patientId } }),
+          prisma.report.findMany({ where: { patientId } }),
+        ]);
+        clinicalData = { prescriptions, appointments, reports };
+      } else {
+        clinicalData = {
+          prescriptions: inMemoryDb.prescriptions.filter((p) => p.patientId === patientId),
+          appointments: inMemoryDb.appointments.filter((a) => a.patientId === patientId),
+          reports: inMemoryDb.reports.filter((r) => r.patientId === patientId),
+        };
+      }
+    }
+
+    return {
+      exportedAt: new Date().toISOString(),
+      user: userProfile,
+      data: clinicalData,
+    };
+  }
+
+  /**
+   * Deactivates user account upon verified password confirmation (Tier B)
+   */
+  async deleteAccount(
+    userId: string,
+    passwordPlain: string,
+    reason?: string,
+    ipAddress?: string,
+    userAgent?: string
+  ) {
+    let userHash: string | null = null;
+    if (isDbConnected()) {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new NotFoundError('User not found');
+      userHash = user.passwordHash;
+    } else {
+      const user = inMemoryDb.users.find((u) => u.id === userId);
+      if (!user) throw new NotFoundError('User not found');
+      userHash = user.passwordHash;
+    }
+
+    const valid = await comparePassword(passwordPlain, userHash);
+    if (!valid) throw new UnauthorizedError('Incorrect password');
+
+    if (isDbConnected()) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { isActive: false },
+      });
+      await prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    } else {
+      const user = inMemoryDb.users.find((u) => u.id === userId);
+      if (user) user.isActive = false;
+      inMemoryDb.refreshTokens.forEach((t) => {
+        if (t.userId === userId && !t.revokedAt) t.revokedAt = new Date();
+      });
+      inMemoryDb.persistRefreshTokens();
+    }
+
+    recordAuditLog({
+      userId,
+      action: 'ACCOUNT_DELETION_REQUESTED',
+      resource: 'USER',
+      resourceId: userId,
+      ipAddress,
+      userAgent,
+      metadata: { reason: reason || 'User requested account closure' },
+    });
+
+    return {
+      success: true,
+      message: 'Your account has been deactivated and marked for permanent deletion.',
+    };
   }
 }
 

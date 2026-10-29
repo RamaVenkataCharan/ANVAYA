@@ -8,6 +8,7 @@ import { billingRoutes } from './modules/billing/billing.routes';
 import { reportRoutes } from './modules/reports/report.routes';
 import { consentRoutes } from './modules/consent/consent.routes';
 import { refillRoutes } from './modules/refills/refills.routes';
+import { notificationRoutes } from './modules/notifications/notification.routes';
 import { prisma } from './config/prisma';
 
 const router = Router();
@@ -43,5 +44,6 @@ router.use('/billing', billingRoutes);
 router.use('/refills', refillRoutes);
 router.use('/reports', reportRoutes);
 router.use('/consent', consentRoutes);
+router.use('/notifications', notificationRoutes);
 
 export const apiRouter = router;

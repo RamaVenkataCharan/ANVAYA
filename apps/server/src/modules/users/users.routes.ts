@@ -48,7 +48,7 @@ router.get('/patients/search', authenticateJwt, (req, res, next) =>
 );
 
 import { validateBody } from '../../middleware/validate';
-import { pushTokenSchema } from '@anvaya/shared';
+import { pushTokenSchema, updateProfileSchema, deleteAccountSchema } from '@anvaya/shared';
 
 // Register Expo push token (Authenticated)
 router.post(
@@ -63,6 +63,34 @@ router.post(
   authenticateJwt,
   validateBody(pushTokenSchema),
   (req, res, next) => usersController.savePushToken(req, res, next)
+);
+
+
+router.patch(
+  '/profile',
+  authenticateJwt,
+  validateBody(updateProfileSchema),
+  (req, res, next) => usersController.updateProfile(req, res, next)
+);
+
+router.patch(
+  '/users/profile',
+  authenticateJwt,
+  validateBody(updateProfileSchema),
+  (req, res, next) => usersController.updateProfile(req, res, next)
+);
+
+router.post(
+  '/users/export-data',
+  authenticateJwt,
+  (req, res, next) => usersController.exportUserData(req, res, next)
+);
+
+router.post(
+  '/users/delete-account',
+  authenticateJwt,
+  validateBody(deleteAccountSchema),
+  (req, res, next) => usersController.deleteAccount(req, res, next)
 );
 
 export const usersRoutes = router;

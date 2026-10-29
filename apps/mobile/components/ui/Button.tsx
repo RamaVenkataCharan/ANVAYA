@@ -16,10 +16,12 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends TouchableOpacityProps {
   title?: string;
+  label?: string;
   children?: TouchableOpacityProps['children'];
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  isLoading?: boolean;
   disabled?: boolean;
   icon?: TouchableOpacityProps['children'];
   style?: StyleProp<ViewStyle>;
@@ -28,10 +30,12 @@ export interface ButtonProps extends TouchableOpacityProps {
 
 export function Button({
   title,
+  label,
   children,
   variant = 'primary',
   size = 'md',
   loading = false,
+  isLoading = false,
   disabled = false,
   icon,
   style,
@@ -41,7 +45,9 @@ export function Button({
   accessibilityHint,
   ...rest
 }: ButtonProps) {
-  const isDisabled = disabled || loading;
+  const isBusy = loading || isLoading;
+  const isDisabled = disabled || isBusy;
+  const displayTitle = title ?? label;
 
   const getVariantContainerStyle = () => {
     switch (variant) {
@@ -116,7 +122,7 @@ export function Button({
         textStyle,
       ]}
     >
-      {title}
+      {displayTitle}
     </Text>
   );
 
@@ -133,9 +139,9 @@ export function Button({
       disabled={isDisabled}
       activeOpacity={0.75}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel || (typeof title === 'string' ? title : undefined)}
+      accessibilityLabel={accessibilityLabel || (typeof displayTitle === 'string' ? displayTitle : undefined)}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      accessibilityState={{ disabled: isDisabled, busy: isBusy }}
       {...rest}
     >
       {loading ? (

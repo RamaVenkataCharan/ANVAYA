@@ -10,6 +10,8 @@ import { Colors } from '../constants/colors';
 import { registerPushTokenWithBackend } from '../services/notifications';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineNotice } from '../components/OfflineNotice';
+import '../i18n';
+import { initLanguagePreference } from '../i18n';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,9 +102,10 @@ function RootNavigationLayout() {
   const segments = useSegments();
   const router = useRouter();
 
-  // Restore tokens from expo-secure-store on initial launch
+  // Restore tokens from expo-secure-store and preferred language on launch
   useEffect(() => {
     restoreSession();
+    void initLanguagePreference();
   }, []);
 
   // Register device for push notifications when user logs in
@@ -121,22 +124,37 @@ function RootNavigationLayout() {
     const currentScreen = segs[1];
 
     if (!user) {
-      // 1. Not logged in -> redirect to (auth)/login
+      // 1. Not logged in -> redirect to (auth)/login unless already in auth
       if (!inAuthGroup) {
         router.replace('/(auth)/login');
       }
     } else {
+      // 2. Suspended check
+      if (user.isActive === false) {
+        if (currentScreen !== 'suspended') {
+          router.replace('/(auth)/suspended');
+        }
+        return;
+      }
+
       const isPending =
         (role === Role.DOCTOR || role === Role.SHOP) &&
         verificationStatus === VerificationStatus.PENDING;
 
+      const isRejected =
+        (role === Role.DOCTOR || role === Role.SHOP) &&
+        verificationStatus === VerificationStatus.REJECTED;
+
       if (isPending) {
-        // 2. DOCTOR or SHOP with status PENDING -> (auth)/pending-verification
         if (currentScreen !== 'pending-verification') {
           router.replace('/(auth)/pending-verification');
         }
+      } else if (isRejected) {
+        if (currentScreen !== 'rejected-verification') {
+          router.replace('/(auth)/rejected-verification');
+        }
       } else {
-        // 3. Otherwise -> (doctor) | (shop) | (patient) based on role
+        // 3. Active user: redirect away from auth pages to their main dashboard
         if (inAuthGroup || segs.length === 0) {
           if (role === Role.DOCTOR) {
             router.replace('/(doctor)');
@@ -175,6 +193,8 @@ function RootNavigationLayout() {
       <Stack.Screen name="(doctor)" options={{ headerShown: false }} />
       <Stack.Screen name="(shop)" options={{ headerShown: false }} />
       <Stack.Screen name="(patient)" options={{ headerShown: false }} />
+      <Stack.Screen name="(common)" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" options={{ headerShown: false }} />
     </Stack>
   );
 }

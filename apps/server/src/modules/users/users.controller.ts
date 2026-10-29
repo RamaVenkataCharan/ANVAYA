@@ -130,6 +130,58 @@ export class UsersController {
       next(error);
     }
   }
+
+  async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const role = req.user!.role;
+      const ip = req.ip || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      const updatedUser = await usersService.updateProfile(userId, role, req.body, ip, userAgent);
+      res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: updatedUser,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportUserData(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const role = req.user!.role;
+      const ip = req.ip || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      const result = await usersService.exportUserData(userId, role, ip, userAgent);
+      res.status(200).json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user!.userId;
+      const { password, reason } = req.body;
+      const ip = req.ip || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      const result = await usersService.deleteAccount(userId, password, reason, ip, userAgent);
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const usersController = new UsersController();

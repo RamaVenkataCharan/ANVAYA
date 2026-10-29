@@ -105,24 +105,24 @@ Status Legend:
 - **PARTIAL**: Screen exists but requires redesign to match 5-tab constraint, UI mockups, or missing features.
 - **MISSING**: Screen does not exist and must be implemented.
 
-### Group A: Account and System (All Roles)
+### Group A: Account and System (All Roles) — COMPLETED
 
 | ID | Screen Title | Role | Route File Path | Endpoints Used | Status | Notes & Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **A1** | Welcome / Onboarding | All | `app/(auth)/welcome.tsx` | None (Local state) | **MISSING** | 3 short slides with carousel/pagination, persisted via storage |
-| **A2** | Forgot Password | All | `app/(auth)/forgot-password.tsx` | `POST /auth/forgot-password/request`, `POST /auth/forgot-password/verify` (Tier B) | **MISSING** | OTP request, verification, password reset |
-| **A3a** | Edit Profile | All | `app/(common)/edit-profile.tsx` | `GET /auth/me`, `PATCH /users/profile` | **MISSING** | Role-specific profile inputs and validation |
-| **A3b** | Change Password | All | `app/(common)/change-password.tsx` | `POST /auth/change-password` | **MISSING** | Current password verification, new password with strength indicator |
-| **A4** | Settings Hub | All | `app/(common)/settings.tsx` | `POST /auth/logout-all` (Tier B) | **MISSING** | English/Telugu language toggle, push prefs, logout all sessions |
-| **A5** | Notification Inbox | All | `app/(common)/notifications.tsx` | `GET /notifications`, `POST /notifications/:id/read` (Tier B) | **MISSING** | Paginated notifications, mark as read, empty states |
+| **A1** | Welcome / Onboarding | All | `app/(auth)/welcome.tsx` | None (Local state) | **EXISTS** | 3 slides with carousel, skip/get started, persisted via storage |
+| **A2** | Forgot Password | All | `app/(auth)/forgot-password.tsx` | `POST /auth/forgot-password/request`, `POST /auth/forgot-password/verify` (Tier B) | **EXISTS** | OTP request, verification, password reset |
+| **A3a** | Edit Profile | All | `app/(common)/edit-profile.tsx` | `GET /auth/me`, `PATCH /users/profile` (Tier B) | **EXISTS** | Role-specific profile inputs and validation |
+| **A3b** | Change Password | All | `app/(common)/change-password.tsx` | `POST /auth/change-password` (Tier B) | **EXISTS** | Current password verification, new password with strength indicator |
+| **A4** | Settings Hub | All | `app/(common)/settings.tsx` | `POST /auth/logout-all` (Tier B) | **EXISTS** | English/Telugu language toggle, push prefs, logout all sessions |
+| **A5** | Notification Inbox | All | `app/(common)/notifications.tsx` | `GET /notifications`, `POST /notifications/:id/read` (Tier B) | **EXISTS** | Notifications list, mark read, empty states |
 | **A6a** | Pending Verification | Doc/Shop | `app/(auth)/pending-verification.tsx` | `GET /auth/me` | **EXISTS** | Waiting screen for administrative review |
-| **A6b** | Rejected Verification | Doc/Shop | `app/(auth)/rejected-verification.tsx` | `GET /auth/me`, `POST /auth/resubmit` (Tier B) | **MISSING** | Shows rejection reason, editable fields for re-application |
-| **A6c** | Suspended Account | All | `app/(auth)/suspended.tsx` | `GET /auth/me` | **MISSING** | Explicit suspension notice, help desk contact CTA |
-| **A7a** | Help & FAQ | All | `app/(common)/help.tsx` | None (Bundled content) | **MISSING** | Searchable FAQs, support email/phone CTA |
-| **A7b** | About App | All | `app/(common)/about.tsx` | None (Version constants) | **MISSING** | App version, build hash, architecture credits |
-| **A7c** | Legal & Privacy | All | `app/(common)/legal.tsx` | None (Bundled content) | **MISSING** | DRAFT disclaimer, placeholder Terms & Privacy Policy |
-| **A8** | Data Export & Delete | All | `app/(common)/account-actions.tsx` | `POST /users/export-data`, `POST /users/delete-account` (Tier B) | **MISSING** | Two-step confirmation, server audit record |
-| **A9** | Not Found & Error Fallback | All | `app/+not-found.tsx` | None | **MISSING** | 404 recovery route to home |
+| **A6b** | Rejected Verification | Doc/Shop | `app/(auth)/rejected-verification.tsx` | `GET /auth/me`, `POST /auth/resubmit-verification` (Tier B) | **EXISTS** | Shows rejection reason, editable fields for re-application |
+| **A6c** | Suspended Account | All | `app/(auth)/suspended.tsx` | `GET /auth/me` | **EXISTS** | Explicit suspension notice, help desk contact CTA |
+| **A7a** | Help & FAQ | All | `app/(common)/help.tsx` | None (Bundled content) | **EXISTS** | Searchable FAQs, support email/phone CTA |
+| **A7b** | About App | All | `app/(common)/about.tsx` | None (Version constants) | **EXISTS** | App version, build hash, architecture credits |
+| **A7c** | Legal & Privacy | All | `app/(common)/legal.tsx` | None (Bundled content) | **EXISTS** | DRAFT disclaimer, placeholder Terms & Privacy Policy |
+| **A8** | Data Export & Delete | All | `app/(common)/account-actions.tsx` | `POST /users/export-data`, `POST /users/delete-account` (Tier B) | **EXISTS** | Two-step confirmation, server audit record |
+| **A9** | Not Found & Error Fallback | All | `app/+not-found.tsx` | None | **EXISTS** | 404 recovery route to home |
 
 ---
 

@@ -91,3 +91,67 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type VerifyEntityInput = z.infer<typeof verifyEntitySchema>;
+
+export const forgotPasswordRequestSchema = z.object({
+  identifier: z.string().trim().min(3, 'Email or phone number is required'),
+});
+
+export const forgotPasswordVerifySchema = z.object({
+  identifier: z.string().trim().min(3, 'Email or phone number is required'),
+  otp: z.string().trim().min(4, 'OTP code is required'),
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(100)
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(100)
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+});
+
+export const resubmitVerificationSchema = z.object({
+  specialization: z.string().trim().min(2).optional(),
+  registrationNo: z.string().trim().min(3).optional(),
+  clinicAddress: z.string().trim().min(5).optional(),
+  shopName: z.string().trim().min(2).optional(),
+  licenseNo: z.string().trim().min(3).optional(),
+  address: z.string().trim().min(5).optional(),
+  timings: z.string().trim().min(3).optional(),
+});
+
+export const updateProfileSchema = z.object({
+  name: z.string().trim().min(2).max(100).optional(),
+  phone: z.string().trim().regex(phoneRegex, 'Valid phone number required').optional(),
+  address: z.string().trim().min(3).optional(),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'DOB must be in YYYY-MM-DD format').optional(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+  bloodGroup: z.string().trim().optional(),
+  emergencyContact: z.string().trim().optional(),
+  specialization: z.string().trim().min(2).optional(),
+  clinicAddress: z.string().trim().min(5).optional(),
+  shopName: z.string().trim().min(2).optional(),
+  timings: z.string().trim().min(3).optional(),
+  gstin: z.string().trim().optional(),
+});
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, 'Password is required to confirm account deletion'),
+  reason: z.string().trim().max(500).optional(),
+});
+
+export type ForgotPasswordRequestInput = z.infer<typeof forgotPasswordRequestSchema>;
+export type ForgotPasswordVerifyInput = z.infer<typeof forgotPasswordVerifySchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type ResubmitVerificationInput = z.infer<typeof resubmitVerificationSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;

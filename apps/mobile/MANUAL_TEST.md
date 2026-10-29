@@ -56,6 +56,47 @@ Because mobile devices cannot reach `localhost`, your development machine and ph
 
 ---
 
+### Scenario 0: Group A Account & System Test Protocol
+
+#### Step 0.1: Welcome & Onboarding Carousel
+1. On fresh launch (or clear storage), verify 3-slide onboarding screen loads with pagination dots.
+2. Swipe through Slide 1 (Prescription Vault), Slide 2 (Pharmacy Dispense), Slide 3 (Unified Khata).
+3. Tap **"Skip"** or **"Get Started"** -> Verify redirection to Sign In and `has_seen_onboarding` persistence.
+
+#### Step 0.2: Forgot Password Flow (OTP Verification)
+1. On Login screen -> Tap **"Forgot Password?"**.
+2. Enter registered phone or email -> Tap **"Send Reset Code"**.
+3. Check server console for `[DEV OTP PROVIDER]` log displaying verification code `123456`.
+4. Enter code `123456`, new password (`Password@456`), confirm password -> Tap **"Reset Password"**.
+5. Verify alert confirmation and log in with new password.
+
+#### Step 0.3: Multi-Language Toggle (English & Telugu)
+1. Navigate to **Settings** (`/(common)/settings`).
+2. Tap **"తెలుగు (Telugu)"** -> Verify all UI labels update to Telugu immediately.
+3. Verify `machine-drafted, needs native review` notice.
+4. Tap **"English"** -> Verify instant switch back to English.
+5. Kill and restart app -> Verify language choice is persisted.
+
+#### Step 0.4: Session Management & Logout All Devices
+1. In Settings -> Tap **"Log Out of All Devices"**.
+2. Confirm prompt -> Verify server revokes refresh tokens and returns to login.
+
+#### Step 0.5: Provider Rejection & Correction Resubmission
+1. Log in with a rejected Doctor or Shop account.
+2. Verify immediate redirection to `/(auth)/rejected-verification`.
+3. Verify rejection reason is displayed clearly in warning banner.
+4. Edit clinic address / store timings and tap **"Update Details & Resubmit"**.
+5. Verify status returns to `PENDING` and redirects to Pending Verification screen.
+
+#### Step 0.6: Legal, Help & Data Export
+1. In Settings -> Tap **"Legal, Terms & Privacy"**.
+2. Verify prominent `DRAFT ONLY — Needs review by qualified person` notice.
+3. Open **Help & FAQ** -> Test search filter and expandable question cards.
+4. Open **Account Actions** -> Tap **"Generate Data Export"** and verify JSON payload generation.
+
+
+---
+
 ### Scenario A: Role Registration & Authentication
 #### Step A.1: Patient Registration
 1. Launch app -> Tap **"Create an account"**.
